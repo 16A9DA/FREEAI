@@ -8,7 +8,6 @@ from freecode.tools import browser_tool, compress, file_tools, git_tool, shell_t
 
 console = Console()
 
-# Tool registry: name -> callable. Filled by tool modules in Day 4+.
 TOOLS = {
     "read_file": file_tools.read_file,
     "write_file": file_tools.write_file,
@@ -29,14 +28,10 @@ TOOLS = {
 
 MAX_ITERS = 8
 
-# Signature line per tool so the model uses real names and arg keys.
 _TOOL_SPEC = "\n".join(
     f"- {name}{inspect.signature(fn)}" for name, fn in TOOLS.items()
 )
 
-# Day 20: the three default behaviors are concatenated from defaults.py (caveman, headroom)
-# then the CODE_WRITING ladder (ponytail) immediately before the tool schema and task rules,
-# so each behavior's source stays explicit and independently updatable.
 AGENT_SYSTEM = (
     "You are freeai, a coding agent executing a plan one step at a time.\n\n"
     f"{defaults.CAVEMAN_RULES}\n"

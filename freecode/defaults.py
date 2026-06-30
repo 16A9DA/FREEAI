@@ -1,4 +1,4 @@
-"""Always-on behavior rulesets embedded into the agent system prompt (Day 20).
+"""Always-on behavior rulesets embedded into the agent system prompt.
 
 Each block governs one default behavior and is kept here as a separate, independently
 updatable text block so the source of each behavior is explicit and a single block can
@@ -8,7 +8,7 @@ Upstream sources (pin the synced date; re-copy a block only on a deliberate bump
 behavior changes are intentional, never accidental):
   caveman   https://github.com/JuliusBrussee/caveman    full-mode rules,    synced 2026-07-01
   ponytail  https://github.com/DietrichGebert/ponytail   decision ladder,    synced 2026-07-01
-  headroom  local compression layer in freecode/tools/compress.py (Day 18), synced 2026-07-01
+  headroom  local compression layer in freecode/tools/compress.py, synced 2026-07-01
 
 What each governs:
   HEADROOM_INSTRUCTIONS  how the model reads compressed tool output and retrieves the full text.

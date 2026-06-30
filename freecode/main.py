@@ -29,8 +29,6 @@ LOGO = r"""
 |_|   |_| \_\_____|_____/_/   \_\___|
 """
 
-# Day 19: every former ai-prefixed binary is now a freeai subcommand. model keeps its own
-# sub-commands so it is mounted as a nested app; the rest reuse their existing callback as-is.
 app.add_typer(model_manager.app, name="model")
 app.command("config")(config.main)
 app.command("history")(history.main)

@@ -146,9 +146,9 @@ Keep that first paragraph specific, since it is the only part freeai reads when 
 freeai always runs at one of three assistance levels. The level decides how much code it writes, how much it explains itself, and how much it trims long tool output to save room. This is one setting rather than several knobs you have to learn.
 
 ```
-low     Writes the least code, replies tersely, and trims output hard. Fastest and cheapest.
+low     The most thorough. Verbose, careful, and keeps the most detail.
 full    Balanced. The default, and what you get with no setup.
-ultra   The most thorough. Verbose, careful, and keeps the most detail.
+ultra    Writes the least code, replies tersely, and trims output hard. Fastest and cheapest.
 ```
 
 Set the level so it sticks:

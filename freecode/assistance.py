@@ -1,27 +1,20 @@
-"""Assistance levels (Day 18): low, full, ultra.
-
-Always-on. One level maps to three knobs:
-  code_minimalism           - force-include the ponytail skill so the model writes the least code.
-  compression_aggressiveness- passed to compress_output for every tool result in the agent loop.
-  response_style            - prepended to the system prompt to set how the model talks.
-"""
 from freecode import skills
 
 _PROFILES = {
     "low": {
-        "code_minimalism": True,
-        "compression_aggressiveness": "high",
-        "response_style": "ultra",
+        "code_minimalism": False,
+        "compression_aggressiveness": "low",
+        "response_style": "verbose",
     },
     "full": {
-        "code_minimalism": False,
+        "code_minimalism": True,
         "compression_aggressiveness": "moderate",
         "response_style": "normal",
     },
     "ultra": {
-        "code_minimalism": False,
-        "compression_aggressiveness": "low",
-        "response_style": "verbose",
+        "code_minimalism": True,
+        "compression_aggressiveness": "high",
+        "response_style": "ultra",
     },
 }
 
