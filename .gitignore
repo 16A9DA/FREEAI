@@ -1,6 +1,7 @@
 # claude / agent config
 CLAUDE.md
 .claude/
+.serena/
 
 # secrets
 .env
