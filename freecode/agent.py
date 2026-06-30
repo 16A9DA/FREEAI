@@ -1,3 +1,4 @@
+import inspect
 import json
 
 from rich.console import Console
@@ -27,12 +28,19 @@ TOOLS = {
 
 MAX_ITERS = 8
 
+# Signature line per tool so the model uses real names and arg keys.
+_TOOL_SPEC = "\n".join(
+    f"- {name}{inspect.signature(fn)}" for name, fn in TOOLS.items()
+)
+
 AGENT_SYSTEM = (
     "You are freeai, a coding agent executing a plan one step at a time. "
-    "You may call tools. To call a tool, respond with ONLY a JSON object: "
-    '{"tool": "<name>", "args": {<arguments>}}. After a tool result is given, '
-    'continue or finish. When the current step is complete, respond with ONLY '
-    '{"done": true}. Output JSON only, no prose.'
+    "You may call ONLY these tools (use the exact name and argument keys):\n"
+    f"{_TOOL_SPEC}\n"
+    "To call a tool, respond with ONLY a JSON object: "
+    '{"tool": "<name>", "args": {<arguments>}}. Do not invent tool names. '
+    "After a tool result is given, continue or finish. When the current step "
+    'is complete, respond with ONLY {"done": true}. Output JSON only, no prose.'
 )
 
 
