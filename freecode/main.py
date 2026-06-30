@@ -2,7 +2,7 @@ import typer
 from rich.console import Console
 from rich.prompt import Confirm
 
-from freecode import agent, ollama_client, planner
+from freecode import agent, ollama_client, parser, planner
 from freecode.config import load_config
 
 app = typer.Typer(help="freeai local AI coding assistant.")
@@ -40,6 +40,7 @@ def task_loop(model):
         if task.lower() in {"exit", "quit", ""}:
             console.print("Bye.")
             break
+        task = parser.parse_mentions(task, model)
         steps = planner.generate_plan(task, model)
         if not steps:
             console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
