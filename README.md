@@ -82,6 +82,24 @@ freeai walks up from cwd, finds `.freeai`, prepends rules to every model prompt.
 
 Global skills. Folders under `~/.freecode/skills/`, each with a `SKILL.md`. First paragraph is the description the model uses to decide relevance. Rest is rules or workflow. Example path `~/.freecode/skills/django-rest/SKILL.md`. Global by design. Same skill applies across every project.
 
+On first run freeai creates `~/.freecode/skills/` with a `general-coding` example skill. Add your own by creating one folder per skill, each holding a `SKILL.md`.
+
+Format. The first paragraph is the description. Keep it specific, since the model reads only descriptions to pick relevant skills for a task. Put the rules or workflow after a blank line in plain markdown.
+
+```
+~/.freecode/skills/django-rest/SKILL.md
+
+Skill for building Django REST Framework APIs. Covers serializers,
+viewsets, and permissions.
+
+Rules:
+- Use ModelSerializer unless a field needs custom logic.
+- Put business logic in services, not views.
+- Always paginate list endpoints.
+```
+
+Before each task freeai matches its description against your skills, loads the full text of any that apply, prepends it to the planner and agent prompts, and prints which skills are active.
+
 ## Config
 
 Stored at `~/.freecode/config.json`. Holds active model and settings.

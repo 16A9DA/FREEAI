@@ -12,6 +12,30 @@ MATCH_SYSTEM = (
 )
 
 
+_EXAMPLE_SKILL = """\
+This skill defines general coding conventions and applies to most coding
+tasks. This first paragraph is the description the model reads to decide
+whether the skill is relevant, so keep it clear and specific.
+
+Rules:
+- Prefer small, readable functions over clever one-liners.
+- Write a short comment only where intent is not obvious from the code.
+- Match the style, naming, and structure of the surrounding code.
+- Handle errors explicitly; never swallow exceptions silently.
+- Add or update tests when you change behaviour.
+"""
+
+
+def bootstrap_skills():
+    """Create the skills dir with one example skill on first run. Returns True if created."""
+    if SKILLS_DIR.exists():
+        return False
+    example = SKILLS_DIR / "general-coding"
+    example.mkdir(parents=True)
+    (example / "SKILL.md").write_text(_EXAMPLE_SKILL)
+    return True
+
+
 def _first_paragraph(text):
     text = text.strip()
     # Skip a leading YAML frontmatter block (Claude skill format).
