@@ -1,7 +1,8 @@
 import typer
 from rich.console import Console
+from rich.prompt import Confirm
 
-from freecode import ollama_client
+from freecode import agent, ollama_client, planner
 from freecode.config import load_config
 
 app = typer.Typer(help="freeai local AI coding assistant.")
@@ -39,4 +40,14 @@ def task_loop(model):
         if task.lower() in {"exit", "quit", ""}:
             console.print("Bye.")
             break
-        console.print("[dim]Plan generation and the agent loop land in Day 3.[/dim]")
+        steps = planner.generate_plan(task, model)
+        if not steps:
+            console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
+            continue
+        console.print("\n[bold]Plan[/bold]")
+        for i, s in enumerate(steps, 1):
+            console.print(f"  {i}. {s}")
+        if Confirm.ask("Approve this plan?", default=True):
+            agent.run(steps, model)
+        else:
+            console.print("[dim]Refine your task and try again.[/dim]")
