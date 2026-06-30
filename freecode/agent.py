@@ -3,7 +3,7 @@ import json
 from rich.console import Console
 
 from freecode import ollama_client
-from freecode.tools import file_tools, git_tool, shell_tool
+from freecode.tools import browser_tool, file_tools, git_tool, shell_tool, web_tool
 
 console = Console()
 
@@ -21,6 +21,8 @@ TOOLS = {
     "git_commit": git_tool.git_commit,
     "git_push": git_tool.git_push,
     "git_log": git_tool.git_log,
+    "web_search": web_tool.web_search,
+    "fetch_page": browser_tool.fetch_page,
 }
 
 MAX_ITERS = 8
