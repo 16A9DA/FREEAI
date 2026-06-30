@@ -3,7 +3,7 @@ import json
 from rich.console import Console
 
 from freecode import ollama_client
-from freecode.tools import file_tools, shell_tool
+from freecode.tools import file_tools, git_tool, shell_tool
 
 console = Console()
 
@@ -15,6 +15,12 @@ TOOLS = {
     "delete_file": file_tools.delete_file,
     "search_in_files": file_tools.search_in_files,
     "run_command": shell_tool.run_command,
+    "git_status": git_tool.git_status,
+    "git_diff": git_tool.git_diff,
+    "git_add": git_tool.git_add,
+    "git_commit": git_tool.git_commit,
+    "git_push": git_tool.git_push,
+    "git_log": git_tool.git_log,
 }
 
 MAX_ITERS = 8
