@@ -1,10 +1,14 @@
+import re
+
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 
-from freecode import agent, ollama_client, parser, planner, skills
+from freecode import agent, model_manager, ollama_client, parser, planner, skills
 from freecode.config import load_config
+
+_SWITCH = re.compile(r"^(?:switch model to|model)\s+(\S+)$", re.I)
 
 app = typer.Typer(help="freeai local AI coding assistant.")
 console = Console()
@@ -45,6 +49,10 @@ def task_loop(model):
         if task.lower() in {"exit", "quit", ""}:
             console.print("Bye.")
             break
+        if (m := _SWITCH.match(task)):
+            model_manager.use(m.group(1))
+            model = load_config().get("active_model") or model
+            continue
         task = parser.parse_mentions(task, model)
         with console.status("[cyan]Matching skills...[/cyan]"):
             matched, skill_prompt = skills.skills_for_task(task, model)
