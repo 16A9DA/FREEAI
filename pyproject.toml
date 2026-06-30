@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "freecode"
+version = "0.1.0"
+description = "freeai: a local AI coding assistant powered by Ollama."
+requires-python = ">=3.10"
+dependencies = [
+    "typer",
+    "rich",
+    "httpx",
+    "duckduckgo-search",
+    "beautifulsoup4",
+    "gitpython",
+]
+
+[project.scripts]
+freeai = "freecode.main:app"
+aimodel = "freecode.model_manager:app"
+aiconfig = "freecode.config:app"
+aihistory = "freecode.history:app"
+aiclear = "freecode.clear:app"
+
+[tool.setuptools.packages.find]
+include = ["freecode*"]
