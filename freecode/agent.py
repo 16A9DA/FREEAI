@@ -2,7 +2,7 @@ import json
 
 from rich.console import Console
 
-from freecode import ollama_client
+from freecode import ollama_client, parser
 from freecode.tools import browser_tool, file_tools, git_tool, shell_tool, web_tool
 
 console = Console()
@@ -51,7 +51,7 @@ def _parse_call(text):
 
 
 def run(steps, model):
-    history = [{"role": "system", "content": AGENT_SYSTEM}]
+    history = [{"role": "system", "content": parser.with_skills(AGENT_SYSTEM)}]
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})

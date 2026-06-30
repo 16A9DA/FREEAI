@@ -31,6 +31,8 @@ def main():
         console.print("[yellow]No active model set. Run `aimodel` to pull and pick one.[/yellow]")
         raise typer.Exit(0)
     console.print(f"Active model: [bold]{model}[/bold]")
+    if parser.load_skills():
+        console.print("[green]Project skills active (.freeai)[/green]")
     task_loop(model)
 
 

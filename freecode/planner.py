@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from freecode import ollama_client
+from freecode import ollama_client, parser
 
 PLAN_SYSTEM = (
     "You are a planning assistant for a coding task. Respond with a numbered "
@@ -21,7 +21,7 @@ def _parse_steps(text):
 
 def generate_plan(task, model, write=True):
     messages = [
-        {"role": "system", "content": PLAN_SYSTEM},
+        {"role": "system", "content": parser.with_skills(PLAN_SYSTEM)},
         {"role": "user", "content": task},
     ]
     text = "".join(ollama_client.chat(model, messages, stream=False))
