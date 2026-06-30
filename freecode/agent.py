@@ -58,8 +58,11 @@ def _parse_call(text):
         return None
 
 
-def run(steps, model):
-    history = [{"role": "system", "content": parser.with_skills(AGENT_SYSTEM)}]
+def run(steps, model, extra_system=""):
+    system = parser.with_skills(AGENT_SYSTEM)
+    if extra_system:
+        system = extra_system + "\n\n" + system
+    history = [{"role": "system", "content": system}]
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})

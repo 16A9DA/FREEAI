@@ -19,9 +19,12 @@ def _parse_steps(text):
     return [ln.strip() for ln in text.splitlines() if ln.strip()]
 
 
-def generate_plan(task, model, write=True):
+def generate_plan(task, model, write=True, extra_system=""):
+    system = parser.with_skills(PLAN_SYSTEM)
+    if extra_system:
+        system = extra_system + "\n\n" + system
     messages = [
-        {"role": "system", "content": parser.with_skills(PLAN_SYSTEM)},
+        {"role": "system", "content": system},
         {"role": "user", "content": task},
     ]
     text = "".join(ollama_client.chat(model, messages, stream=False))

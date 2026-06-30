@@ -3,7 +3,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 
-from freecode import agent, ollama_client, parser, planner
+from freecode import agent, ollama_client, parser, planner, skills
 from freecode.config import load_config
 
 app = typer.Typer(help="freeai local AI coding assistant.")
@@ -44,14 +44,18 @@ def task_loop(model):
             console.print("Bye.")
             break
         task = parser.parse_mentions(task, model)
+        with console.status("[cyan]Matching skills...[/cyan]"):
+            matched, skill_prompt = skills.skills_for_task(task, model)
+        if matched:
+            console.print(f"[magenta]Skills active: {', '.join(matched)}[/magenta]")
         with console.status("[cyan]Planning...[/cyan]"):
-            steps = planner.generate_plan(task, model)
+            steps = planner.generate_plan(task, model, extra_system=skill_prompt)
         if not steps:
             console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
             continue
         body = "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1))
         console.print(Panel(body, title="Plan", border_style="cyan"))
         if Confirm.ask("Approve this plan?", default=True):
-            agent.run(steps, model)
+            agent.run(steps, model, extra_system=skill_prompt)
         else:
             console.print("[dim]Refine your task and try again.[/dim]")
