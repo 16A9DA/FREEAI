@@ -1,11 +1,12 @@
 import re
+from pathlib import Path
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 
-from freecode import agent, model_manager, ollama_client, parser, planner, skills
+from freecode import agent, model_manager, ollama_client, parser, planner, rag, skills
 from freecode.config import load_config
 
 _SWITCH = re.compile(r"^(?:switch model to|model)\s+(\S+)$", re.I)
@@ -43,7 +44,47 @@ def main():
     task_loop(model)
 
 
+def _build_index(cwd):
+    if rag.EMBED_MODEL not in ollama_client.list_models():
+        console.print(
+            f"[yellow]{rag.EMBED_MODEL} not pulled. Run `aimodel pull {rag.EMBED_MODEL}` then "
+            "`aiindex`. Continuing with @ mentions only.[/yellow]"
+        )
+        return False
+    try:
+        with console.status("[cyan]Indexing project...[/cyan]"):
+            n = rag.embed_project(cwd)
+        console.print(f"[green]Indexed {n} file(s).[/green]")
+        return True
+    except Exception as e:
+        console.print(f"[yellow]Indexing failed: {e}. Continuing with @ mentions only.[/yellow]")
+        return False
+
+
+def _inject_retrieval(task, cwd):
+    try:
+        chunks = rag.search_relevant_chunks(task, cwd)
+    except Exception as e:
+        console.print(f"[dim]Retrieval skipped: {e}[/dim]")
+        return task
+    if not chunks:
+        return task
+    files = sorted({c["file"] for c in chunks})
+    console.print(f"[blue]Retrieved context from: {', '.join(files)}[/blue]")
+    blocks = "\n\n".join(
+        f"### {c['file']} (lines {c['start']}-{c['end']})\n{c['content']}" for c in chunks
+    )
+    return (
+        task
+        + "\n\n## Automatically retrieved context (found by search, not referenced by the user)\n\n"
+        + blocks
+    )
+
+
 def task_loop(model):
+    cwd = Path.cwd()
+    rag_on = rag.has_index(cwd)
+    asked = rag_on
     while True:
         task = console.input("\n[bold cyan]task>[/bold cyan] ").strip()
         if task.lower() in {"exit", "quit", ""}:
@@ -53,6 +94,16 @@ def task_loop(model):
             model_manager.use(m.group(1))
             model = load_config().get("active_model") or model
             continue
+        if not asked:
+            asked = True
+            if Confirm.ask(
+                "Build a search index for this project? Enables automatic relevant-file "
+                "detection for future tasks.",
+                default=False,
+            ):
+                rag_on = _build_index(cwd)
+        if rag_on:
+            task = _inject_retrieval(task, cwd)
         task = parser.parse_mentions(task, model)
         with console.status("[cyan]Matching skills...[/cyan]"):
             matched, skill_prompt = skills.skills_for_task(task, model)

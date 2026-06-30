@@ -38,6 +38,12 @@ def delete_model(name):
     r.raise_for_status()
 
 
+def embed(model, text):
+    r = httpx.post(f"{BASE}/api/embeddings", json={"model": model, "prompt": text}, timeout=120.0)
+    r.raise_for_status()
+    return r.json()["embedding"]
+
+
 def chat(model, messages, stream=True):
     payload = {"model": model, "messages": messages, "stream": stream}
     with httpx.stream("POST", f"{BASE}/api/chat", json=payload, timeout=None) as r:

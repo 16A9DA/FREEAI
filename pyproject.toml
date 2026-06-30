@@ -14,6 +14,7 @@ dependencies = [
     "duckduckgo-search",
     "beautifulsoup4",
     "gitpython",
+    "chromadb",
 ]
 
 [project.scripts]
@@ -22,6 +23,7 @@ aimodel = "freecode.model_manager:app"
 aiconfig = "freecode.config:app"
 aihistory = "freecode.history:app"
 aiclear = "freecode.clear:app"
+aiindex = "freecode.rag:app"
 
 [tool.setuptools.packages.find]
 include = ["freecode*"]
