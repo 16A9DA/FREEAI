@@ -3,7 +3,7 @@ import json
 from rich.console import Console
 
 from freecode import ollama_client
-from freecode.tools import file_tools
+from freecode.tools import file_tools, shell_tool
 
 console = Console()
 
@@ -14,6 +14,7 @@ TOOLS = {
     "create_file": file_tools.create_file,
     "delete_file": file_tools.delete_file,
     "search_in_files": file_tools.search_in_files,
+    "run_command": shell_tool.run_command,
 }
 
 MAX_ITERS = 8
