@@ -81,6 +81,6 @@ def remove(name: str):
         cfg["pulled_models"].remove(name)
     if cfg.get("active_model") == name:
         cfg["active_model"] = None
-        console.print("[yellow]That was your active model. Pick a new default with `aimodel use <name>`.[/yellow]")
+        console.print("[yellow]That was your active model. Pick a new default with `freeai model use <name>`.[/yellow]")
     save_config(cfg)
     console.print(f"[green]Removed {name}[/green]")

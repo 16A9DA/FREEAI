@@ -145,7 +145,7 @@ def main():
         console.print("[red]Ollama not running at localhost:11434. Start it with `ollama serve`.[/red]")
         raise typer.Exit(1)
     if EMBED_MODEL not in ollama_client.list_models():
-        console.print(f"[yellow]{EMBED_MODEL} not pulled. Run `aimodel pull {EMBED_MODEL}` first.[/yellow]")
+        console.print(f"[yellow]{EMBED_MODEL} not pulled. Run `freeai model pull {EMBED_MODEL}` first.[/yellow]")
         raise typer.Exit(1)
     with console.status("[cyan]Indexing project...[/cyan]"):
         n = embed_project(".")

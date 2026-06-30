@@ -4,10 +4,16 @@ from pathlib import Path
 import typer
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 from rich.prompt import Confirm
 
-from freecode import agent, assistance, model_manager, ollama_client, parser, planner, rag, skills
+from freecode import (
+    agent, assistance, clear, config, history, model_manager,
+    ollama_client, parser, planner, rag, skills,
+)
 from freecode.config import ASSISTANCE_LEVELS, load_config, save_config
+
+GITHUB_URL = "https://github.com/16A9DA/FREEAI"
 
 _SWITCH = re.compile(r"^(?:switch model to|model)\s+(\S+)$", re.I)
 _ASSIST = re.compile(r"^assistance\s+(\w+)$", re.I)
@@ -23,9 +29,52 @@ LOGO = r"""
 |_|   |_| \_\_____|_____/_/   \_\___|
 """
 
+# Day 19: every former ai-prefixed binary is now a freeai subcommand. model keeps its own
+# sub-commands so it is mounted as a nested app; the rest reuse their existing callback as-is.
+app.add_typer(model_manager.app, name="model")
+app.command("config")(config.main)
+app.command("history")(history.main)
+app.command("clear")(clear.main)
+app.command("index")(rag.main)
+
+
+_COMMANDS = [
+    ("(no command)", "Open the welcome screen and start the task prompt."),
+    ("help", "Show this command list."),
+    ("model list|pull|use|remove", "Download, list, switch, and remove local models."),
+    ("config", "View or change settings (--assistance, --model, --temperature, --context)."),
+    ("history", "Show past tasks."),
+    ("clear", "Erase the saved session memory."),
+    ("index", "Build or refresh the search index for the current project."),
+]
+
+
+def _print_help():
+    console.print(LOGO, style="white")
+    console.print("freeai is a local AI coding assistant that runs entirely on your machine via Ollama.")
+    console.print("Describe a task, approve the plan, and watch it run step by step.\n")
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Command")
+    table.add_column("Description")
+    for name, desc in _COMMANDS:
+        table.add_row(f"freeai {name}".strip(), desc)
+    console.print(table)
+    console.print(f"\n{GITHUB_URL}")
+
+
+@app.command("help")
+def help_cmd():
+    """List every freeai command."""
+    _print_help()
+
 
 @app.callback(invoke_without_command=True)
-def main():
+def main(ctx: typer.Context, help_: bool = typer.Option(False, "-help", help="List every freeai command.")):
+    if help_:
+        _print_help()
+        raise typer.Exit()
+    if ctx.invoked_subcommand is not None:
+        return
     if not ollama_client.check_running():
         console.print(
             "[red]Ollama not running at localhost:11434. Start it with `ollama serve`.[/red]"
@@ -35,10 +84,11 @@ def main():
     model = cfg.get("active_model")
     console.print(LOGO, style="white")
     if not model:
-        console.print("[yellow]No active model set. Run `aimodel` to pull and pick one.[/yellow]")
+        console.print("[yellow]No active model set. Run `freeai model pull <name>` to get one.[/yellow]")
         raise typer.Exit(0)
     level = cfg.get("assistance_level", "full")
     console.print(f"Active model: [bold]{model}[/bold]   Assistance: [bold]{level}[/bold]")
+    console.print("[dim]Type `freeai -help` to list all commands.[/dim]")
     if skills.bootstrap_skills():
         console.print("[green]Created ~/.freecode/skills/ with an example skill.[/green]")
     if parser.load_skills():
@@ -49,8 +99,8 @@ def main():
 def _build_index(cwd):
     if rag.EMBED_MODEL not in ollama_client.list_models():
         console.print(
-            f"[yellow]{rag.EMBED_MODEL} not pulled. Run `aimodel pull {rag.EMBED_MODEL}` then "
-            "`aiindex`. Continuing with @ mentions only.[/yellow]"
+            f"[yellow]{rag.EMBED_MODEL} not pulled. Run `freeai model pull {rag.EMBED_MODEL}` then "
+            "`freeai index`. Continuing with @ mentions only.[/yellow]"
         )
         return False
     try:
