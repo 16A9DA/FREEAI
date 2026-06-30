@@ -34,26 +34,36 @@ def list_cmd():
 def pull(name: str = typer.Argument(None)):
     """Pull a model and stream download progress."""
     name = name or Prompt.ask("Model name")
-    columns = (TextColumn("[bold]{task.description}"), BarColumn(), DownloadColumn(), TransferSpeedColumn())
-    with Progress(*columns, console=console) as prog:
-        task = prog.add_task(name, total=None)
-        for chunk in ollama_client.pull_model(name):
-            status, completed, total = chunk.get("status", ""), chunk.get("completed"), chunk.get("total")
-            if total:
-                prog.update(task, total=total, completed=completed or 0, description=f"{name} {status}")
-            else:
-                prog.update(task, description=f"{name} {status}")
+    if name in ollama_client.list_models():
+        console.print(f"[yellow]{name} already pulled.[/yellow]")
+    else:
+        columns = (TextColumn("[bold]{task.description}"), BarColumn(), DownloadColumn(), TransferSpeedColumn())
+        with Progress(*columns, console=console) as prog:
+            task = prog.add_task(name, total=None)
+            for chunk in ollama_client.pull_model(name):
+                status, completed, total = chunk.get("status", ""), chunk.get("completed"), chunk.get("total")
+                if total:
+                    prog.update(task, total=total, completed=completed or 0, description=f"{name} {status}")
+                else:
+                    prog.update(task, description=f"{name} {status}")
+        console.print(f"[green]Pulled {name}[/green]")
     cfg = load_config()
     if name not in cfg["pulled_models"]:
         cfg["pulled_models"].append(name)
+    if Confirm.ask(f"Set {name} as your default model?", default=True):
+        cfg["active_model"] = name
     save_config(cfg)
-    console.print(f"[green]Pulled {name}[/green]")
 
 
 @app.command()
 def use(name: str):
     """Set the active model."""
     cfg = load_config()
+    if name not in cfg["pulled_models"]:
+        console.print(f"[yellow]{name} is not pulled yet.[/yellow]")
+        if Confirm.ask(f"Pull {name} now?", default=True):
+            pull(name)
+        return
     cfg["active_model"] = name
     save_config(cfg)
     console.print(f"[green]Active model is now {name}[/green]")
@@ -71,5 +81,6 @@ def remove(name: str):
         cfg["pulled_models"].remove(name)
     if cfg.get("active_model") == name:
         cfg["active_model"] = None
+        console.print("[yellow]That was your active model. Pick a new default with `aimodel use <name>`.[/yellow]")
     save_config(cfg)
     console.print(f"[green]Removed {name}[/green]")
