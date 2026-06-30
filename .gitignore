@@ -1,0 +1,32 @@
+# claude / agent config
+CLAUDE.md
+.claude/
+
+# secrets
+.env
+.env.*
+*.key
+*.pem
+secrets*
+*.secret
+*.credentials
+
+# antigravity planning artifacts
+implementation_plan.md
+task.md
+system_architecture.md
+.cursorrules
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# os
+.DS_Store

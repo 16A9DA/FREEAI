@@ -1,1 +1,91 @@
 # FREEAI
+
+## Overview
+
+freeai is local AI coding assistant. Runs on your machine via Ollama and open source models. Type `freeai`, see welcome screen with active model, describe task, approve generated plan, watch it execute step by step. Has file ops, terminal commands, git, DuckDuckGo web search, browser scraping. Supports `@` mentions for files and folders by relative path. Per project `.freeai` skills file defines custom behaviour. Nothing leaves your machine after initial model download.
+
+## Install
+
+Requires Ollama and Python.
+
+```bash
+brew install ollama
+git clone https://github.com/16A9DA/FREEAI.git
+cd FREEAI
+pip install -e .
+```
+
+Pull first model:
+
+```bash
+aimodel pull qwen2.5-coder:7b
+```
+
+## Usage
+
+Start Ollama, then run freeai in any project:
+
+```bash
+freeai
+```
+
+Describe task. freeai generates plan, asks yes/no. Approve. Agent executes each step, calls tools, streams progress.
+
+## Commands
+
+All commands standalone.
+
+```
+freeai      main assistant. Welcome screen plus task loop.
+aimodel     pull, list, use, remove local models.
+aiconfig    show and set config values.
+aihistory   show past tasks.
+aiclear     wipe session memory.
+```
+
+## Tools
+
+Agent calls these by name.
+
+```
+file        read, write, create, delete, search in files.
+shell       run commands. Confirms on destructive keywords.
+git         status, diff, add, commit, push, log. Push always confirms.
+web         DuckDuckGo search. No API key.
+browser     fetch page, extract main text.
+```
+
+## @ mentions
+
+Reference files and folders by relative path inside any task.
+
+```
+fix the bug in @./src/models/user.py
+use the schema from @../otherproject/schema.py
+```
+
+File mention sends summarised content. Folder mention sends file tree.
+
+## Skills
+
+Two kinds.
+
+Project skills. A `.freeai` file in project root. One rule per line. Example.
+
+```
+always use type hints
+never modify files in the migrations folder
+prefer async functions
+```
+
+freeai walks up from cwd, finds `.freeai`, prepends rules to every model prompt.
+
+Global skills. Folders under `~/.freecode/skills/`, each with a `SKILL.md`. First paragraph is the description the model uses to decide relevance. Rest is rules or workflow. Example path `~/.freecode/skills/django-rest/SKILL.md`. Global by design. Same skill applies across every project.
+
+## Config
+
+Stored at `~/.freecode/config.json`. Holds active model and settings.
+
+## Privacy
+
+Local only. Ollama serves models at `localhost:11434`. No data leaves the machine except the initial model download and explicit DuckDuckGo search queries.
