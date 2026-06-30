@@ -169,6 +169,25 @@ One caveat worth knowing. Part of the low level works by telling the model to wr
 
 A rough guide: use `ultra` when you are working in an unfamiliar codebase or on something important, `full` for everyday work, and `low` once you trust the assistant on a given project and want to move faster.
 
+## Default behaviors
+
+Three behaviors are always on, built into the prompt the agent works from. They are kept as separate, documented rulesets in `freecode/defaults.py`, each one borrowed from an upstream project so you can read the original if you want the full reasoning.
+
+headroom governs how the agent handles tool output. Long results from a command or a file read are shortened before the model sees them, and the full text is kept under a short reference id. If the model needs the part that was cut, it asks for the original by that id. This keeps the model's limited context focused on what matters.
+
+caveman governs how the agent writes. Replies are terse, with filler and hedging dropped. Code, file paths, command names, and error messages are always kept exact and unaltered, and anything where brevity would cause confusion, such as a security warning, is written out in full.
+
+ponytail governs how much code the agent writes. Before writing anything, it looks for the smallest solution that actually works: reusing code already in your project, reaching for the standard library, or writing one line instead of fifty. It never cuts input validation, error handling, or security checks to save space.
+
+How strict caveman and ponytail are follows your assistance level. As with the assistance level itself, how closely the model obeys the ponytail rules depends on the model. The headroom compression is handled by freeai directly and behaves the same regardless of which model is active.
+
+The upstream rulesets:
+
+```
+caveman    https://github.com/JuliusBrussee/caveman
+ponytail   https://github.com/DietrichGebert/ponytail
+```
+
 ## Automatic file search
 
 On a large project, mentioning every relevant file by hand gets tedious. freeai can build a searchable index of your code so it finds the right files on its own.

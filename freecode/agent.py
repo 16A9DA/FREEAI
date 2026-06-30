@@ -3,7 +3,7 @@ import json
 
 from rich.console import Console
 
-from freecode import ollama_client, parser
+from freecode import defaults, ollama_client, parser
 from freecode.tools import browser_tool, compress, file_tools, git_tool, shell_tool, web_tool
 
 console = Console()
@@ -24,6 +24,7 @@ TOOLS = {
     "git_log": git_tool.git_log,
     "web_search": web_tool.web_search,
     "fetch_page": browser_tool.fetch_page,
+    "retrieve_original": compress.retrieve_original,
 }
 
 MAX_ITERS = 8
@@ -33,8 +34,14 @@ _TOOL_SPEC = "\n".join(
     f"- {name}{inspect.signature(fn)}" for name, fn in TOOLS.items()
 )
 
+# Day 20: the three default behaviors are concatenated from defaults.py (caveman, headroom)
+# then the CODE_WRITING ladder (ponytail) immediately before the tool schema and task rules,
+# so each behavior's source stays explicit and independently updatable.
 AGENT_SYSTEM = (
-    "You are freeai, a coding agent executing a plan one step at a time. "
+    "You are freeai, a coding agent executing a plan one step at a time.\n\n"
+    f"{defaults.CAVEMAN_RULES}\n"
+    f"{defaults.HEADROOM_INSTRUCTIONS}\n"
+    f"{defaults.PONYTAIL_LADDER}\n"
     "You may call ONLY these tools (use the exact name and argument keys):\n"
     f"{_TOOL_SPEC}\n"
     "To call a tool, respond with ONLY a JSON object: "

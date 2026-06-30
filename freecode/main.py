@@ -88,6 +88,8 @@ def main(ctx: typer.Context, help_: bool = typer.Option(False, "-help", help="Li
         raise typer.Exit(0)
     level = cfg.get("assistance_level", "full")
     console.print(f"Active model: [bold]{model}[/bold]   Assistance: [bold]{level}[/bold]")
+    console.print("[dim]Defaults: headroom (compresses tool output) · caveman (terse replies) · "
+                  "ponytail (minimal code)[/dim]")
     console.print("[dim]Type `freeai -help` to list all commands.[/dim]")
     if skills.bootstrap_skills():
         console.print("[green]Created ~/.freecode/skills/ with an example skill.[/green]")
