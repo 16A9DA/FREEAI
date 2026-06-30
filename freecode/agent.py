@@ -56,26 +56,29 @@ def run(steps, model):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})
         for _ in range(MAX_ITERS):
-            reply = "".join(ollama_client.chat(model, history, stream=False))
+            with console.status("[cyan]Thinking...[/cyan]"):
+                reply = "".join(ollama_client.chat(model, history, stream=False))
             history.append({"role": "assistant", "content": reply})
             call = _parse_call(reply)
             if call is None:
                 console.print("[yellow]No valid JSON from model; moving on.[/yellow]")
                 break
             if call.get("done"):
-                console.print("[green]Step done.[/green]")
+                console.print("[green]✓ Step done.[/green]")
                 break
             name, args = call.get("tool"), call.get("args", {})
             fn = TOOLS.get(name)
             if fn is None:
                 result = f"Error: unknown tool '{name}'"
-                console.print(f"[red]{result}[/red]")
+                console.print(f"[red]✗ {result}[/red]")
             else:
                 console.print(f"[cyan]call[/cyan] {name}({args})")
                 try:
                     result = fn(**args)
+                    console.print(f"[green]✓ {name}[/green]")
                 except Exception as e:
                     result = f"Error: {e}"
+                    console.print(f"[red]✗ {name}: {e}[/red]")
             history.append({"role": "user", "content": f"Tool result: {result}"})
         else:
             console.print("[yellow]Step hit iteration cap.[/yellow]")
