@@ -19,11 +19,17 @@ _PROFILES = {
 }
 
 _STYLE_PROMPT = {
-    "ultra": "Answer as tersely as possible. Drop articles, filler, and hedging. "
-             "Keep all technical content, code, and exact error strings intact.",
-    "normal": "",
-    "verbose": "Favour thorough, high-quality work: explain non-obvious reasoning, write "
-               "clear comments, handle errors explicitly, and add defensive checks where they help.",
+    "ultra": (
+        "Minimize text. Only essential explanation. "
+        "Prefer compact code. No filler. "
+        "Assume expert user."
+    ),
+    "normal": (
+        "Balanced explanation and code. Keep clarity."
+    ),
+    "verbose": (
+        "Explain step-by-step. Include reasoning, comments, and safety checks."
+    ),
 }
 
 
