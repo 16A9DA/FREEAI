@@ -6,7 +6,8 @@ from rich.console import Console
 from rich.table import Table
 
 CONFIG_PATH = Path.home() / ".freecode" / "config.json"
-DEFAULTS = {"active_model": None, "pulled_models": [], "settings": {}}
+DEFAULTS = {"active_model": None, "pulled_models": [], "settings": {}, "assistance_level": "full"}
+ASSISTANCE_LEVELS = ("low", "full", "ultra")
 
 app = typer.Typer(help="Show and set config values.")
 console = Console()
@@ -28,11 +29,18 @@ def main(
     model: str = typer.Option(None, help="Set active model."),
     temperature: float = typer.Option(None, help="Set sampling temperature."),
     context: int = typer.Option(None, help="Set context window size."),
+    assistance: str = typer.Option(None, help="Set assistance level: low, full, or ultra."),
 ):
     cfg = load_config()
     changed = False
     if model is not None:
         cfg["active_model"] = model
+        changed = True
+    if assistance is not None:
+        if assistance not in ASSISTANCE_LEVELS:
+            console.print(f"[red]Invalid level '{assistance}'. Choose: {', '.join(ASSISTANCE_LEVELS)}.[/red]")
+            raise typer.Exit(1)
+        cfg["assistance_level"] = assistance
         changed = True
     if temperature is not None:
         cfg["settings"]["temperature"] = temperature
@@ -47,6 +55,7 @@ def main(
     table.add_column("key", style="cyan")
     table.add_column("value")
     table.add_row("active_model", str(cfg.get("active_model")))
+    table.add_row("assistance_level", str(cfg.get("assistance_level", "full")))
     table.add_row("pulled_models", ", ".join(cfg.get("pulled_models", [])) or "-")
     for k, v in cfg.get("settings", {}).items():
         table.add_row(f"settings.{k}", str(v))

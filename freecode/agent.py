@@ -4,7 +4,7 @@ import json
 from rich.console import Console
 
 from freecode import ollama_client, parser
-from freecode.tools import browser_tool, file_tools, git_tool, shell_tool, web_tool
+from freecode.tools import browser_tool, compress, file_tools, git_tool, shell_tool, web_tool
 
 console = Console()
 
@@ -58,7 +58,7 @@ def _parse_call(text):
         return None
 
 
-def run(steps, model, extra_system=""):
+def run(steps, model, extra_system="", compression="moderate"):
     system = parser.with_skills(AGENT_SYSTEM)
     if extra_system:
         system = extra_system + "\n\n" + system
@@ -90,6 +90,7 @@ def run(steps, model, extra_system=""):
                 except Exception as e:
                     result = f"Error: {e}"
                     console.print(f"[red]✗ {name}: {e}[/red]")
+            result = compress.compress_output(result, compression)
             history.append({"role": "user", "content": f"Tool result: {result}"})
         else:
             console.print("[yellow]Step hit iteration cap.[/yellow]")

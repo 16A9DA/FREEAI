@@ -100,9 +100,35 @@ Rules:
 
 Before each task freeai matches its description against your skills, loads the full text of any that apply, prepends it to the planner and agent prompts, and prints which skills are active.
 
+## Assistance levels
+
+An always-on setting that controls how much help freeai gives, from terse and minimal to thorough. Three levels.
+
+```
+low     Least code, terse replies, aggressive tool-output compression. Fastest, cheapest.
+full    Balanced. Moderate compression, normal replies. Default.
+ultra   Highest fidelity. Verbose, careful work, minimal compression.
+```
+
+Each level sets three things. code_minimalism force includes a minimal-code skill so the model writes less. compression_aggressiveness controls how hard tool output is shortened before it goes back to the model. response_style sets how the model talks.
+
+Set it persistently.
+
+```bash
+aiconfig --assistance ultra
+```
+
+Or change it for the session from the freeai prompt.
+
+```
+assistance low
+```
+
+The active level shows on the welcome screen.
+
 ## Config
 
-Stored at `~/.freecode/config.json`. Holds active model and settings.
+Stored at `~/.freecode/config.json`. Holds active model, assistance level, and settings.
 
 ## Privacy
 

@@ -26,13 +26,30 @@ Rules:
 """
 
 
+_PONYTAIL_SKILL = """\
+Forces the laziest solution that actually works: simplest, shortest, most
+minimal code. Force-included at the low assistance level to keep generated
+code small.
+
+Rules:
+- Question whether the code needs to exist at all before writing it.
+- Reuse a helper or pattern already in this codebase before adding one.
+- Prefer the standard library, then a native platform feature, then an
+  already-installed dependency. Never add a dependency for a few lines.
+- No speculative abstractions: no interface with one implementation, no
+  config for a value that never changes.
+- Shortest working diff wins. Deletion over addition.
+"""
+
+
 def bootstrap_skills():
-    """Create the skills dir with one example skill on first run. Returns True if created."""
+    """Create the skills dir with starter skills on first run. Returns True if created."""
     if SKILLS_DIR.exists():
         return False
-    example = SKILLS_DIR / "general-coding"
-    example.mkdir(parents=True)
-    (example / "SKILL.md").write_text(_EXAMPLE_SKILL)
+    for name, body in (("general-coding", _EXAMPLE_SKILL), ("ponytail", _PONYTAIL_SKILL)):
+        folder = SKILLS_DIR / name
+        folder.mkdir(parents=True)
+        (folder / "SKILL.md").write_text(body)
     return True
 
 

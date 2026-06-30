@@ -6,10 +6,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 
-from freecode import agent, model_manager, ollama_client, parser, planner, rag, skills
-from freecode.config import load_config
+from freecode import agent, assistance, model_manager, ollama_client, parser, planner, rag, skills
+from freecode.config import ASSISTANCE_LEVELS, load_config, save_config
 
 _SWITCH = re.compile(r"^(?:switch model to|model)\s+(\S+)$", re.I)
+_ASSIST = re.compile(r"^assistance\s+(\w+)$", re.I)
 
 app = typer.Typer(help="freeai local AI coding assistant.")
 console = Console()
@@ -36,7 +37,8 @@ def main():
     if not model:
         console.print("[yellow]No active model set. Run `aimodel` to pull and pick one.[/yellow]")
         raise typer.Exit(0)
-    console.print(f"Active model: [bold]{model}[/bold]")
+    level = cfg.get("assistance_level", "full")
+    console.print(f"Active model: [bold]{model}[/bold]   Assistance: [bold]{level}[/bold]")
     if skills.bootstrap_skills():
         console.print("[green]Created ~/.freecode/skills/ with an example skill.[/green]")
     if parser.load_skills():
@@ -85,6 +87,7 @@ def task_loop(model):
     cwd = Path.cwd()
     rag_on = rag.has_index(cwd)
     asked = rag_on
+    level = load_config().get("assistance_level", "full")
     while True:
         task = console.input("\n[bold cyan]task>[/bold cyan] ").strip()
         if task.lower() in {"exit", "quit", ""}:
@@ -93,6 +96,17 @@ def task_loop(model):
         if (m := _SWITCH.match(task)):
             model_manager.use(m.group(1))
             model = load_config().get("active_model") or model
+            continue
+        if (m := _ASSIST.match(task)):
+            new = m.group(1).lower()
+            if new not in ASSISTANCE_LEVELS:
+                console.print(f"[red]Invalid level. Choose: {', '.join(ASSISTANCE_LEVELS)}.[/red]")
+                continue
+            level = new
+            cfg = load_config()
+            cfg["assistance_level"] = level
+            save_config(cfg)
+            console.print(f"[green]Assistance level is now {level}.[/green]")
             continue
         if not asked:
             asked = True
@@ -109,14 +123,17 @@ def task_loop(model):
             matched, skill_prompt = skills.skills_for_task(task, model)
         if matched:
             console.print(f"[magenta]Skills active: {', '.join(matched)}[/magenta]")
+        profile = assistance.get_assistance_profile(level)
+        extra_system = "\n\n".join(p for p in (assistance.system_prefix(level), skill_prompt) if p)
         with console.status("[cyan]Planning...[/cyan]"):
-            steps = planner.generate_plan(task, model, extra_system=skill_prompt)
+            steps = planner.generate_plan(task, model, extra_system=extra_system)
         if not steps:
             console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
             continue
         body = "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1))
         console.print(Panel(body, title="Plan", border_style="cyan"))
         if Confirm.ask("Approve this plan?", default=True):
-            agent.run(steps, model, extra_system=skill_prompt)
+            agent.run(steps, model, extra_system=extra_system,
+                      compression=profile["compression_aggressiveness"])
         else:
             console.print("[dim]Refine your task and try again.[/dim]")
