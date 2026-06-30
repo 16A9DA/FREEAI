@@ -3,11 +3,18 @@ import json
 from rich.console import Console
 
 from freecode import ollama_client
+from freecode.tools import file_tools
 
 console = Console()
 
 # Tool registry: name -> callable. Filled by tool modules in Day 4+.
-TOOLS = {}
+TOOLS = {
+    "read_file": file_tools.read_file,
+    "write_file": file_tools.write_file,
+    "create_file": file_tools.create_file,
+    "delete_file": file_tools.delete_file,
+    "search_in_files": file_tools.search_in_files,
+}
 
 MAX_ITERS = 8
 
