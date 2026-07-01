@@ -5,7 +5,8 @@ import shlex
 import os
 import time
 from rich.console import Console
-from rich.prompt import Confirm
+
+from freecode import ui
 
 console = Console()
 
@@ -95,7 +96,7 @@ def run_command(command: str, cwd: str | None = None) -> dict:
     # ── Destructive guard ───────────────────────────────────────
     if _is_destructive(command):
         console.print(f"\n[bold red]Destructive command:[/bold red] {command}")
-        if not Confirm.ask("Run it?", default=False):
+        if not ui.confirm("Run it?", "shell"):
             return {"status": "cancelled", "output": "User cancelled.", "exit_code": None}
 
     # ── Server / long-running ───────────────────────────────────

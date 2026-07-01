@@ -1,4 +1,3 @@
-import difflib
 import os
 from pathlib import Path
 
@@ -23,23 +22,9 @@ def _show_diff(path, old, new, force=False):
     if old is None:
         expandable(f"[green]+ new file: {path}[/green]", lambda: console.print(new), force=force)
         return
-    diff = list(difflib.unified_diff(
-        old.splitlines(keepends=True), new.splitlines(keepends=True),
-        fromfile=path, tofile=path,
-    ))
-    if not diff:
+    if old == new:
         return
-
-    def render():
-        for line in diff:
-            if line.startswith("+") and not line.startswith("+++"):
-                console.print(line.rstrip(), style="green")
-            elif line.startswith("-") and not line.startswith("---"):
-                console.print(line.rstrip(), style="red")
-            else:
-                console.print(line.rstrip(), style="dim")
-
-    expandable(f"diff: {path}", render, force=force)
+    expandable(f"diff: {path}", lambda: console.print(ui.side_by_side(path, old, new)), force=force)
 
 
 def write_file(path, content):
@@ -49,7 +34,7 @@ def write_file(path, content):
         if p.exists():
             old = p.read_text()
             _show_diff(path, old, content)
-            if not Confirm.ask(f"Overwrite existing {path}?", default=False):
+            if not ui.confirm(f"Overwrite existing {path}?", "overwrite"):
                 return f"Cancelled: {path} not overwritten"
         else:
             _show_diff(path, None, content)

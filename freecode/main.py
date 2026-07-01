@@ -19,7 +19,7 @@ from freecode.config import ASSISTANCE_LEVELS, load_config, save_config
 
 GITHUB_URL = "https://github.com/16A9DA/FREEAI"
 
-_SWITCH = re.compile(r"^(?:switch model to|model)\s+(\S+)$", re.I)
+_SWITCH = re.compile(r"^switch model to\s+(\S+)$", re.I)
 _ASSIST = re.compile(r"^(?:assistance|mode)\s+(\w+)$", re.I)
 _HISTORY_FILE = str(Path.home() / ".freecode" / "prompt_history")
 
@@ -151,6 +151,31 @@ def _inject_retrieval(task, cwd):
     )
 
 
+def _run_builtin(cmd):
+    """Run a built-in command typed at the task prompt. Returns True if handled."""
+    parts = cmd.split()
+    if not parts:
+        return False
+    name, rest = parts[0].lower(), parts[1:]
+    if name == "help":
+        _print_help()
+    elif name == "history":
+        history.main()
+    elif name == "clear":
+        clear.main(history="--history" in rest)
+    elif name == "model":
+        sub = rest[0].lower() if rest else "list"
+        if sub == "list":
+            model_manager.list_cmd()
+        elif sub in {"pull", "use", "remove"} and len(rest) > 1:
+            getattr(model_manager, sub)(rest[1])
+        else:
+            model_manager.use(rest[0])
+    else:
+        return False
+    return True
+
+
 def task_loop(model):
     cwd = Path.cwd()
     rag_on = rag.has_index(cwd)
@@ -176,6 +201,16 @@ def task_loop(model):
         if task.lower() in {"exit", "quit", "", "/done"}:
             console.print("Bye.")
             break
+        # Built-in commands run directly: no plan, no approval gate.
+        cmd = task.lstrip("/").strip()
+        if cmd.split(" ", 1)[0].lower() == "index":
+            asked = True
+            rag_on = _build_index(cwd)
+            continue
+        if _run_builtin(cmd):
+            model = load_config().get("active_model") or model
+            ui.set_context(model, level)
+            continue
         if (m := _SWITCH.match(task)):
             model_manager.use(m.group(1))
             model = load_config().get("active_model") or model
@@ -217,7 +252,7 @@ def task_loop(model):
             continue
         body = "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1))
         ui.expandable("Plan ready", lambda: console.print(Panel(body, title="Plan", border_style="cyan")))
-        if Confirm.ask("Approve this plan?", default=True):
+        if ui.confirm("Approve this plan?", "plan", default=True):
             known_embed = load_config().get("known_embedding_models", [])
             step_usage = agent.run(steps, model, extra_system=extra_system,
                                     compression=profile["compression_aggressiveness"],
