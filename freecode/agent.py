@@ -67,7 +67,7 @@ def _parse_call(text):
 
 def _clean_error(name, exc):
     """Short plain-English tool error, never a raw traceback, so a small model
-    can recover instead of derailing (Day 38)."""
+    can recover instead of derailing."""
     msg = str(exc)
     if isinstance(exc, TypeError):
         if name == "create_file":
@@ -79,7 +79,7 @@ def _clean_error(name, exc):
 
 def _new_project_folder(name, args):
     """Top-level folder a tool call is creating a file inside, else None.
-    Used to follow the agent into a scaffolded project dir (Day 36)."""
+    Used to follow the agent into a scaffolded project dir."""
     path = None
     if name in ("create_file", "write_file"):
         path = args.get("path")
@@ -108,15 +108,15 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
     total = 0
     warned = False
     origin = Path.cwd()
-    # Day 36 auto-follow into a scaffolded dir; skipped when a Day 39 write target
-    # already pinned the working dir explicitly.
+    # auto-follow into a scaffolded dir; skipped when a write target already
+    # pinned the working dir explicitly.
     shifted = pin_root
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
-        step_start = len(history)  # Day 38: rollback point if this step fails
+        step_start = len(history)  # rollback point if this step fails
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})
         prompt_tok = completion_tok = 0
-        last_sig = None  # Day 37: previous tool call signature, to catch a stuck loop
+        last_sig = None  # previous tool call signature, to catch a stuck loop
         ok = False
         for _ in range(MAX_ITERS):
             with console.status(f"[cyan]Working[/cyan] · {model} · tokens: {total:,}"):
@@ -168,7 +168,7 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
         else:
             console.print("[yellow]Step hit iteration cap.[/yellow]")
         if not ok:
-            # Day 38: drop this failed step's transcript so its error text does not
+            # drop this failed step's transcript so its error text does not
             # poison later steps' context and derail the whole plan.
             del history[step_start:]
         step_usage.append((f"step {i}: {step[:40]}", prompt_tok, completion_tok))

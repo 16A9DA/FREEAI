@@ -1,5 +1,5 @@
-"""Day 35 guard: the slash popup is prompt_toolkit completion data, never printed
-output, so it cannot stack/duplicate on resize (resolved by architecture)."""
+"""Guard: the slash popup is prompt_toolkit completion data, never printed
+output, so it cannot stack/duplicate on resize."""
 from prompt_toolkit.completion import Completion
 from prompt_toolkit.document import Document
 

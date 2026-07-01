@@ -277,8 +277,8 @@ def task_loop(model):
                 rag_on = _build_index(cwd)
             else:
                 _set_prompt_declined(cwd)
-        # Day 39: an @ mention acting as a write target redirects where output
-        # lands. Detect and strip it before planning; apply the chdir at exec time.
+        # an @ mention acting as a write target redirects where output lands.
+        # Detect and strip it before planning; apply the chdir at exec time.
         write_target = None
         if (wt := parser.detect_write_target(task)):
             raw, write_target = wt

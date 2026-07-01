@@ -1,4 +1,4 @@
-"""Day 38 guard: a failed step's transcript is dropped so its error text does not
+"""Guard: a failed step's transcript is dropped so its error text does not
 poison later steps (no whole-plan derail)."""
 import json
 

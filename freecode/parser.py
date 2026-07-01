@@ -6,7 +6,7 @@ from freecode import ollama_client
 _MENTION = re.compile(r"@(\S+)")
 _SLASH = re.compile(r"/(\w*)$")
 
-# Day 39: @ mention can mean "write output here", told apart from a read
+# An @ mention can mean "write output here", told apart from a read
 # reference by the verb context around it.
 _READ_CUES = ("using", "based on", "like", "similar to", "referencing")
 _WRITE_VERBS = ("create", "make", "build", "write", "add", "put")
@@ -26,7 +26,7 @@ def resolve_write_target(mention):
 def detect_write_target(text):
     """First @ mention acting as a write target, else None.
     Returns (raw_mention, resolved_path). Defaults to read reference (None) when
-    no verb signal, preserving Day 8 behavior."""
+    no verb signal, preserving prior read-reference behavior."""
     for m in _MENTION.finditer(text):
         raw = m.group(1)
         before = text[:m.start()].strip().lower()
