@@ -1,5 +1,8 @@
 import inspect
 import json
+import os
+import re
+from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
@@ -61,6 +64,27 @@ def _parse_call(text):
         return None
 
 
+def _new_project_folder(name, args):
+    """Top-level folder a tool call is creating a file inside, else None.
+    Used to follow the agent into a scaffolded project dir (Day 36)."""
+    path = None
+    if name in ("create_file", "write_file"):
+        path = args.get("path")
+    elif name == "run_command":
+        m = re.match(r"\s*mkdir\s+(?:-p\s+)?(\S+)", args.get("command", ""))
+        if m:
+            path = m.group(1)
+    if not path:
+        return None
+    p = Path(path)
+    if p.is_absolute() or not p.parts or p.parts[0] in (".", ".."):
+        return None
+    # Need a folder component (file nested inside it), not a bare root file.
+    if name != "run_command" and len(p.parts) < 2:
+        return None
+    return p.parts[0]
+
+
 def run(steps, model, extra_system="", compression="moderate", known_embedding_models=()):
     system = parser.with_skills(AGENT_SYSTEM)
     if extra_system:
@@ -69,10 +93,13 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
     step_usage = []  # [(label, prompt_tokens, completion_tokens)]
     total = 0
     warned = False
+    origin = Path.cwd()
+    shifted = False  # Day 36: followed the agent into a scaffolded project dir yet
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})
         prompt_tok = completion_tok = 0
+        last_sig = None  # Day 37: previous tool call signature, to catch a stuck loop
         for _ in range(MAX_ITERS):
             with console.status(f"[cyan]Working[/cyan] · {model} · tokens: {total:,}"):
                 reply, usage = ollama_client.chat_with_usage(model, history, known_embedding_models)
@@ -90,6 +117,12 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
                 console.print("[green]✓ Step done.[/green]")
                 break
             name, args = call.get("tool"), call.get("args", {})
+            sig = (name, json.dumps(args, sort_keys=True, default=str))
+            if sig == last_sig:
+                console.print("[red]✗ Step stuck: identical tool call repeated. "
+                              "Stopping step.[/red]")
+                break
+            last_sig = sig
             fn = TOOLS.get(name)
             if fn is None:
                 result = f"Error: unknown tool '{name}'"
@@ -99,6 +132,15 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
                 try:
                     result = fn(**args)
                     console.print(f"[green]✓ {name}[/green]")
+                    if not shifted and (folder := _new_project_folder(name, args)):
+                        target = origin / folder
+                        if target.is_dir():
+                            os.chdir(target)
+                            src = origin / "plan.md"
+                            if src.exists():
+                                src.rename(target / "plan.md")
+                            console.print(f"[cyan]project root → {folder}/[/cyan]")
+                            shifted = True
                 except Exception as e:
                     result = f"Error: {e}"
                     console.print(f"[red]✗ {name}: {e}[/red]")
