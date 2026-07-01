@@ -139,8 +139,16 @@ def _inject_retrieval(task, cwd):
         return task
     if not chunks:
         return task
-    files = sorted({c["file"] for c in chunks})
-    console.print(f"[blue]Retrieved context from: {', '.join(files)}[/blue]")
+    table = Table(title="Retrieved context (headroom-compressed)")
+    table.add_column("file", style="cyan")
+    table.add_column("lines", justify="right")
+    table.add_column("type")
+    table.add_column("saved", justify="right")
+    for c in chunks:
+        saved = (c["raw_len"] - len(c["content"])) // 4  # ~4 chars per token
+        table.add_row(c["file"], f"{c['start']}-{c['end']}", c.get("type", "-"),
+                      f"{c['ratio']:.0%} (~{saved} tok)")
+    console.print(table)
     blocks = "\n\n".join(
         f"### {c['file']} (lines {c['start']}-{c['end']})\n{c['content']}" for c in chunks
     )

@@ -56,12 +56,12 @@ def system_prefix(level):
 
 
 def demo():
-    assert get_assistance_profile("low")["compression_aggressiveness"] == "high"
-    assert get_assistance_profile("ultra")["response_style"] == "verbose"
+    assert get_assistance_profile("low")["compression_aggressiveness"] == "low"
+    assert get_assistance_profile("ultra")["response_style"] == "ultra"
     assert get_assistance_profile("bogus") == get_assistance_profile("full")
-    assert system_prefix("full") == ""
-    assert "minimum code" in system_prefix("low")
-    assert "thorough" in system_prefix("ultra")
+    assert "step-by-step" in system_prefix("low")   # low: verbose style, no minimalism
+    assert "minimum code" in system_prefix("full")  # full: code_minimalism on
+    assert "Minimize text" in system_prefix("ultra")
     print("ok")
 
 

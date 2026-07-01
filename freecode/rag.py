@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 
 from freecode import ollama_client
+from freecode.tools import compress
 
 app = typer.Typer(help="Build or refresh the project search index.")
 console = Console()
@@ -114,9 +115,19 @@ def search_relevant_chunks(query, project_path, top_k=5):
         return []
     qvec = ollama_client.embed(EMBED_MODEL, query)
     res = coll.query(query_embeddings=[qvec], n_results=min(top_k, count))
+    docs = (res.get("documents") or [[]])[0]
+    metas = (res.get("metadatas") or [[]])[0]
     out = []
-    for doc, meta in zip(res["documents"][0], res["metadatas"][0]):
-        out.append({"file": meta["file"], "start": meta["start"], "end": meta["end"], "content": doc})
+    for doc, meta in zip(docs, metas):
+        comp = compress.compress_chunk(doc)
+        out.append({
+            "file": meta["file"], "start": meta["start"], "end": meta["end"],
+            "content": comp["content"], "hash": comp["hash"], "ratio": comp["ratio"],
+            "type": comp["type"], "raw_len": len(doc),
+        })
+    # CacheAligner: stable order (path, start) keeps the prompt prefix identical across
+    # consecutive tasks so Ollama's KV cache can be reused.
+    out.sort(key=lambda c: (c["file"], c["start"]))
     return out
 
 
