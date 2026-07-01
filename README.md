@@ -8,7 +8,7 @@
 
 # freeai
 
-![freeai welcome screen with the slash command menu open](docs/screenshot.png)
+<img src="docs/screenshot.png" alt="freeai welcome screen with the slash command menu open" width="600">
 
 freeai is a coding assistant that runs entirely on your own computer. You describe a task in plain English, it writes a short plan, and once you approve, it works through the steps: editing files, running commands, using git, and searching the web when needed.
 
