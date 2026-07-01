@@ -6,8 +6,6 @@
 |_|   |_| \_\_____|_____/_/   \_\___|
 ```
 
-# freeai
-
 <p align="center">
   <img src="docs/screenshot.png" alt="freeai welcome screen with the slash command menu open" width="600">
 </p>
