@@ -8,8 +8,9 @@
 
 # freeai
 
-<img style="center;" src="docs/screenshot.png" alt="freeai welcome screen with the slash command menu open" width="600" >
-
+<p align="center">
+  <img src="docs/screenshot.png" alt="freeai welcome screen with the slash command menu open" width="600">
+</p>
 freeai is a coding assistant that runs entirely on your own computer. You describe a task in plain English, it writes a short plan, and once you approve, it works through the steps: editing files, running commands, using git, and searching the web when needed.
 
 What sets it apart is where the work happens. freeai uses [Ollama](https://ollama.com) to run open source language models locally. You download a model once, and after that nothing you type and no file you open leaves your machine. It keeps working with no internet connection and no API key.
