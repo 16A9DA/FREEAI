@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
 
+from freecode import ui
 from freecode.ui import expandable
 
 console = Console()
@@ -43,37 +44,49 @@ def _show_diff(path, old, new, force=False):
 
 def write_file(path, content):
     p = Path.cwd() / path
-    if p.exists():
-        old = p.read_text()
-        _show_diff(path, old, content)
-        if not Confirm.ask(f"Overwrite existing {path}?", default=False):
-            return f"Cancelled: {path} not overwritten"
-    else:
-        _show_diff(path, None, content)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(content)
-    return f"Wrote {path}"
+    ui.set_editing(path)
+    try:
+        if p.exists():
+            old = p.read_text()
+            _show_diff(path, old, content)
+            if not Confirm.ask(f"Overwrite existing {path}?", default=False):
+                return f"Cancelled: {path} not overwritten"
+        else:
+            _show_diff(path, None, content)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content)
+        return f"Wrote {path}"
+    finally:
+        ui.set_editing(None)
 
 
 def create_file(path, content):
     p = Path.cwd() / path
     if p.exists():
         return f"Error: {path} already exists"
-    _show_diff(path, None, content)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(content)
-    return f"Created {path}"
+    ui.set_editing(path)
+    try:
+        _show_diff(path, None, content)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content)
+        return f"Created {path}"
+    finally:
+        ui.set_editing(None)
 
 
 def delete_file(path):
     p = Path.cwd() / path
     if not p.exists():
         return f"Error: no file at {path}"
-    _show_diff(path, p.read_text(errors="replace"), "", force=True)
-    if not Confirm.ask(f"Delete {path}?", default=False):
-        return f"Cancelled: {path} not deleted"
-    p.unlink()
-    return f"Deleted {path}"
+    ui.set_editing(path)
+    try:
+        _show_diff(path, p.read_text(errors="replace"), "", force=True)
+        if not Confirm.ask(f"Delete {path}?", default=False):
+            return f"Cancelled: {path} not deleted"
+        p.unlink()
+        return f"Deleted {path}"
+    finally:
+        ui.set_editing(None)
 
 
 def search_in_files(query, directory="."):

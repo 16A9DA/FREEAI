@@ -4,7 +4,7 @@ import json
 from rich.console import Console
 from rich.table import Table
 
-from freecode import defaults, ollama_client, parser
+from freecode import defaults, ollama_client, parser, ui
 from freecode.tools import browser_tool, compress, file_tools, git_tool, shell_tool, web_tool
 
 console = Console()
@@ -75,9 +75,11 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
         for _ in range(MAX_ITERS):
             with console.status(f"[cyan]Working[/cyan] · {model} · tokens: {total:,}"):
                 reply, usage = ollama_client.chat_with_usage(model, history, known_embedding_models)
+            turn_tokens = usage["prompt_tokens"] + usage["completion_tokens"]
             prompt_tok += usage["prompt_tokens"]
             completion_tok += usage["completion_tokens"]
-            total += usage["prompt_tokens"] + usage["completion_tokens"]
+            total += turn_tokens
+            ui.add_tokens(turn_tokens)
             history.append({"role": "assistant", "content": reply})
             call = _parse_call(reply)
             if call is None:

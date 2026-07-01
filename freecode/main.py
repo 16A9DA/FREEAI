@@ -152,9 +152,12 @@ def task_loop(model):
     rag_on = rag.has_index(cwd)
     asked = rag_on
     level = load_config().get("assistance_level", "full")
-    session = PromptSession(completer=commands.SlashCompleter(), complete_while_typing=True)
+    ui.set_context(model, level)
+    session = PromptSession(
+        completer=commands.SlashCompleter(), complete_while_typing=True,
+        bottom_toolbar=ui.bottom_toolbar,
+    )
     while True:
-        console.print(f"\n[dim]{model} · {level}[/dim]")
         task = session.prompt("task> ").strip()
         if task.lower() in {"exit", "quit", "", "/done"}:
             console.print("Bye.")
@@ -162,6 +165,7 @@ def task_loop(model):
         if (m := _SWITCH.match(task)):
             model_manager.use(m.group(1))
             model = load_config().get("active_model") or model
+            ui.set_context(model, level)
             continue
         if (m := _ASSIST.match(task)):
             new = m.group(1).lower()
@@ -172,6 +176,7 @@ def task_loop(model):
             cfg = load_config()
             cfg["assistance_level"] = level
             save_config(cfg)
+            ui.set_context(model, level)
             console.print(f"[green]Assistance level is now {level}.[/green]")
             continue
         if not asked:
@@ -182,16 +187,16 @@ def task_loop(model):
                 default=False,
             ):
                 rag_on = _build_index(cwd)
-        if rag_on:
-            task = _inject_retrieval(task, cwd)
-        task = parser.parse_mentions(task, model)
-        with console.status("[cyan]Matching skills...[/cyan]"):
+        with ui.phase("Learning"):
+            if rag_on:
+                task = _inject_retrieval(task, cwd)
+            task = parser.parse_mentions(task, model)
             matched, skill_prompt = skills.skills_for_task(task, model)
         if matched:
             console.print(f"[magenta]Skills active: {', '.join(matched)}[/magenta]")
         profile = assistance.get_assistance_profile(level)
         extra_system = "\n\n".join(p for p in (assistance.system_prefix(level), skill_prompt) if p)
-        with console.status("[cyan]Planning...[/cyan]"):
+        with ui.phase("Thinking"):
             steps = planner.generate_plan(task, model, extra_system=extra_system)
         if not steps:
             console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
