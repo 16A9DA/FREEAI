@@ -4,7 +4,7 @@ import json
 from rich.console import Console
 from rich.table import Table
 
-from freecode import defaults, ollama_client, parser, ui
+from freecode import defaults, ollama_client, parser, responsive, ui
 from freecode.tools import browser_tool, compress, file_tools, git_tool, shell_tool, web_tool
 
 console = Console()
@@ -68,6 +68,7 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
     history = [{"role": "system", "content": system}]
     step_usage = []  # [(label, prompt_tokens, completion_tokens)]
     total = 0
+    warned = False
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})
@@ -106,6 +107,10 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
         else:
             console.print("[yellow]Step hit iteration cap.[/yellow]")
         step_usage.append((f"step {i}: {step[:40]}", prompt_tok, completion_tok))
+        if not warned and len(steps) <= 3 and total > 3000:
+            console.print("[yellow]Token usage high for this task's size — consider a "
+                          "smaller model or lower assistance level.[/yellow]")
+            warned = True
     _print_session_summary(step_usage)
     return step_usage
 
@@ -113,10 +118,12 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
 def _print_session_summary(step_usage):
     if not step_usage:
         return
+    narrow = responsive.is_narrow()  # drop prompt/completion split, total only
     table = Table(title="Session token usage")
-    table.add_column("step")
-    table.add_column("prompt", justify="right")
-    table.add_column("completion", justify="right")
+    table.add_column("step", overflow="fold")
+    if not narrow:
+        table.add_column("prompt", justify="right")
+        table.add_column("completion", justify="right")
     table.add_column("total", justify="right")
     peak_idx = max(range(len(step_usage)), key=lambda i: step_usage[i][1] + step_usage[i][2])
     tp = tc = 0
@@ -124,8 +131,10 @@ def _print_session_summary(step_usage):
         tp += p
         tc += c
         style = "bold yellow" if idx == peak_idx else None
-        table.add_row(label, f"{p:,}", f"{c:,}", f"{p + c:,}", style=style)
-    table.add_row("total", f"{tp:,}", f"{tc:,}", f"{tp + tc:,}", style="bold")
+        cols = [label] if narrow else [label, f"{p:,}", f"{c:,}"]
+        table.add_row(*cols, f"{p + c:,}", style=style)
+    total_cols = ["total"] if narrow else ["total", f"{tp:,}", f"{tc:,}"]
+    table.add_row(*total_cols, f"{tp + tc:,}", style="bold")
     console.print(table)
     peak_label, pp, pc = step_usage[peak_idx]
     console.print(f"[yellow]peak usage — {peak_label} ({pp + pc:,} tok)[/yellow]")

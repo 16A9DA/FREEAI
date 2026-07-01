@@ -11,7 +11,7 @@ dependencies = [
     "typer",
     "rich",
     "httpx",
-    "duckduckgo-search",
+    "ddgs",
     "beautifulsoup4",
     "gitpython",
     "chromadb",

@@ -1,17 +1,74 @@
 import difflib
 from contextlib import contextmanager
 
+from prompt_toolkit.application import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.layout import Layout
+from prompt_toolkit.layout.containers import HSplit, Window
+from prompt_toolkit.layout.controls import FormattedTextControl
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.table import Table
 from rich.text import Text
+
+from freecode import responsive
 
 console = Console()
 
 
+def select(prompt, options, horizontal=True, default=0):
+    """Arrow-key picker. Returns chosen index. Left/right move horizontal,
+    up/down move vertical, enter confirms."""
+    idx = [default]
+
+    def render():
+        parts = [("bold", prompt + ("   " if horizontal else "\n"))]
+        for i, opt in enumerate(options):
+            hot = i == idx[0]
+            if horizontal:
+                parts.append(("reverse" if hot else "class:dim", f" {opt} "))
+                parts.append(("", "  "))
+            else:
+                parts.append(("reverse" if hot else "class:dim",
+                              f"{'> ' if hot else '  '}{opt}"))
+                parts.append(("", "\n"))
+        return parts
+
+    kb = KeyBindings()
+    prev, nxt = ("left", "right") if horizontal else ("up", "down")
+
+    @kb.add(prev)
+    def _(e):
+        idx[0] = (idx[0] - 1) % len(options)
+
+    @kb.add(nxt)
+    def _(e):
+        idx[0] = (idx[0] + 1) % len(options)
+
+    @kb.add("enter")
+    def _(e):
+        e.app.exit(result=idx[0])
+
+    @kb.add("c-c")
+    def _(e):
+        e.app.exit(result=default)
+
+    app = Application(
+        layout=Layout(HSplit([Window(
+            FormattedTextControl(render),
+            height=1 if horizontal else len(options) + 1,
+        )])),
+        key_bindings=kb,
+    )
+    return app.run()
+
+
+def ask_yes_no(question, default=False):
+    """Horizontal yes/no picker. Returns bool."""
+    return select(question, ["yes", "no"], default=0 if default else 1) == 0
+
+
 STATE = {"model": "", "level": "", "tokens": 0, "editing": None}
 
-# Categories the user approved for the whole session (memory only; resets each launch).
 _ALLOW = set()
 
 
@@ -19,12 +76,12 @@ def confirm(question, category, default=False):
     """y/n confirm with 'a' = allow this category for rest of session."""
     if category in _ALLOW:
         return True
-    ans = Prompt.ask(f"{question} [dim](y/n/a=allow all this session)[/dim]",
-                     choices=["y", "n", "a"], default="y" if default else "n")
-    if ans == "a":
+    choice = select(question, ["yes", "no", "allow all this session"],
+                    default=0 if default else 1)
+    if choice == 2:
         _ALLOW.add(category)
         return True
-    return ans == "y"
+    return choice == 0
 
 
 def side_by_side(path, old, new):
@@ -60,8 +117,15 @@ def set_editing(path):
 
 
 def bottom_toolbar():
-    left = f"editing: {STATE['editing']}" if STATE["editing"] else f"{STATE['model']} · {STATE['level']}"
-    return f" {left}    tokens: {STATE['tokens']:,} "
+    narrow = responsive.is_narrow()  # drop level + thousands separator when tight
+    if STATE["editing"]:
+        left = f"editing: {STATE['editing']}"
+    elif narrow:
+        left = STATE["model"]
+    else:
+        left = f"{STATE['model']} · {STATE['level']}"
+    tokens = f"{STATE['tokens']}" if narrow else f"{STATE['tokens']:,}"
+    return f" {left}    tokens: {tokens} "
 
 
 @contextmanager
@@ -91,6 +155,7 @@ def demo():
     _ALLOW.add("shell")
     assert confirm("run?", "shell") is True  # pre-allowed skips prompt
     set_context("m", "full")
+    
     add_tokens(5)
     assert "tokens: 5" in bottom_toolbar()
     print("ok")

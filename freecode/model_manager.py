@@ -1,10 +1,10 @@
 import typer
 from rich.console import Console
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TransferSpeedColumn
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Prompt
 from rich.table import Table
 
-from freecode import ollama_client
+from freecode import ollama_client, responsive, ui
 from freecode.config import load_config, save_config
 
 app = typer.Typer(help="Pull, list, use, remove local models.")
@@ -26,20 +26,25 @@ def list_cmd():
     chat_models = [m for m in models if not ollama_client.is_embedding_model(m["name"], known_embed)]
     embed_models = [m for m in models if ollama_client.is_embedding_model(m["name"], known_embed)]
 
+    narrow = responsive.is_narrow()  # drop size column, keep name + active marker
     table = Table(title="Chat models")
-    table.add_column("name", style="cyan")
-    table.add_column("size", justify="right")
+    table.add_column("name", style="cyan", overflow="fold")
+    if not narrow:
+        table.add_column("size", justify="right")
     table.add_column("active", justify="center")
     for m in chat_models:
-        table.add_row(m["name"], _human(m["size"]), "*" if m["name"] == active else "")
+        marker = "*" if m["name"] == active else ""
+        row = [m["name"]] if narrow else [m["name"], _human(m["size"])]
+        table.add_row(*row, marker)
     console.print(table)
 
     if embed_models:
         etable = Table(title="Embedding models")
-        etable.add_column("name", style="cyan")
-        etable.add_column("size", justify="right")
+        etable.add_column("name", style="cyan", overflow="fold")
+        if not narrow:
+            etable.add_column("size", justify="right")
         for m in embed_models:
-            etable.add_row(m["name"], _human(m["size"]))
+            etable.add_row(m["name"], *([] if narrow else [_human(m["size"])]))
         console.print(etable)
 
 
@@ -63,7 +68,7 @@ def pull(name: str = typer.Argument(None)):
     cfg = load_config()
     if name not in cfg["pulled_models"]:
         cfg["pulled_models"].append(name)
-    if Confirm.ask(f"Set {name} as your default model?", default=True):
+    if ui.ask_yes_no(f"Set {name} as your default model?", default=True):
         cfg["active_model"] = name
     save_config(cfg)
 

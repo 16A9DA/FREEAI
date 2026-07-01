@@ -1,8 +1,9 @@
 from git import Repo
 from git.exc import GitError, InvalidGitRepositoryError
 from rich.console import Console
-from rich.prompt import Confirm
 from rich.table import Table
+
+from freecode import ui
 
 console = Console()
 
@@ -55,7 +56,7 @@ def git_push():
     except (InvalidGitRepositoryError, GitError, ValueError) as e:
         return f"Error: {e}"
     console.print(f"[yellow]Push[/yellow] {branch} -> {remote.name} ({remote.url})")
-    if not Confirm.ask("Push?", default=False):
+    if not ui.ask_yes_no("Push?", default=False):
         return "Cancelled: not pushed"
     try:
         remote.push()

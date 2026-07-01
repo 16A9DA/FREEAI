@@ -33,9 +33,13 @@ def main(
     temperature: float = typer.Option(None, help="Set sampling temperature."),
     context: int = typer.Option(None, help="Set context window size."),
     assistance: str = typer.Option(None, help="Set assistance level: low, full, or ultra."),
+    reset_prompts: bool = typer.Option(False, "--reset-prompts", help="Re-enable remembered setup prompts."),
 ):
     cfg = load_config()
     changed = False
+    if reset_prompts:
+        cfg["projects"] = {}
+        changed = True
     if model is not None:
         cfg["active_model"] = model
         changed = True

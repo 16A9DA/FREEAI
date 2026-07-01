@@ -6,7 +6,12 @@ from freecode import ollama_client, parser
 PLAN_SYSTEM = (
     "You are a planning assistant for a coding task. Respond with a numbered "
     "step-by-step plan only, one step per line like '1. ...'. No code, no "
-    "explanations, no preamble, no closing remarks."
+    "explanations, no preamble, no closing remarks. Each step is a single "
+    "imperative line of five to eight words, no restating the task, no trailing "
+    "explanation (e.g. 'List models', not 'Retrieve the current models available'). "
+    "Prefer fewer steps: for a small one or two file change use at most five "
+    "steps and collapse related actions into one (combine create file and add "
+    "content into a single step rather than splitting them)."
 )
 
 _NUM = re.compile(r"^\s*\d+[.)]\s*(.+)")

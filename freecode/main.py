@@ -1,3 +1,4 @@
+import hashlib
 import re
 from pathlib import Path
 
@@ -9,7 +10,6 @@ from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.prompt import Confirm, Prompt
 
 from freecode import (
     agent, assistance, clear, commands, config, history, model_manager,
@@ -99,7 +99,7 @@ def main(ctx: typer.Context, help_: bool = typer.Option(False, "-help", help="Li
         if not choices:
             console.print("[yellow]No chat model pulled. Run `freeai model pull <name>`.[/yellow]")
             raise typer.Exit(1)
-        model = Prompt.ask("Pick a model to use", choices=choices)
+        model = choices[ui.select("Pick a model to use", choices, horizontal=False)]
         cfg["active_model"] = model
         save_config(cfg)
     level = cfg.get("assistance_level", "full")
@@ -112,6 +112,21 @@ def main(ctx: typer.Context, help_: bool = typer.Option(False, "-help", help="Li
     if parser.load_skills():
         console.print("[green]Project skills active (.freeai)[/green]")
     task_loop(model)
+
+
+def _project_key(cwd):
+    return hashlib.sha1(str(Path(cwd).resolve()).encode()).hexdigest()[:12]
+
+
+def _prompt_declined(cwd):
+    projects = load_config().get("projects", {})
+    return projects.get(_project_key(cwd), {}).get("rag_declined", False)
+
+
+def _set_prompt_declined(cwd):
+    cfg = load_config()
+    cfg.setdefault("projects", {}).setdefault(_project_key(cwd), {})["rag_declined"] = True
+    save_config(cfg)
 
 
 def _build_index(cwd):
@@ -187,7 +202,7 @@ def _run_builtin(cmd):
 def task_loop(model):
     cwd = Path.cwd()
     rag_on = rag.has_index(cwd)
-    asked = rag_on
+    asked = rag_on or _prompt_declined(cwd)
     level = load_config().get("assistance_level", "full")
     ui.set_context(model, level)
     kb = KeyBindings()
@@ -238,12 +253,14 @@ def task_loop(model):
             continue
         if not asked:
             asked = True
-            if Confirm.ask(
+            if ui.ask_yes_no(
                 "Build a search index for this project? Enables automatic relevant-file "
                 "detection for future tasks.",
                 default=False,
             ):
                 rag_on = _build_index(cwd)
+            else:
+                _set_prompt_declined(cwd)
         with ui.phase("Learning"):
             if rag_on:
                 task = _inject_retrieval(task, cwd)
@@ -259,7 +276,8 @@ def task_loop(model):
             console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
             continue
         body = "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1))
-        ui.expandable("Plan ready", lambda: console.print(Panel(body, title="Plan", border_style="cyan")))
+        ui.expandable(f"Plan: {len(steps)} steps",
+                      lambda: console.print(Panel(body, title="Plan", border_style="cyan")))
         if ui.confirm("Approve this plan?", "plan", default=True):
             known_embed = load_config().get("known_embedding_models", [])
             step_usage = agent.run(steps, model, extra_system=extra_system,

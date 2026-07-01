@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 
 from rich.console import Console
-from rich.prompt import Confirm
 from rich.table import Table
 
 from freecode import ui
@@ -66,7 +65,7 @@ def delete_file(path):
     ui.set_editing(path)
     try:
         _show_diff(path, p.read_text(errors="replace"), "", force=True)
-        if not Confirm.ask(f"Delete {path}?", default=False):
+        if not ui.ask_yes_no(f"Delete {path}?", default=False):
             return f"Cancelled: {path} not deleted"
         p.unlink()
         return f"Deleted {path}"
