@@ -14,8 +14,8 @@ def web_search(query, max_results=5):
     ]
     table = Table(title=f"search: {query}")
     table.add_column("title", style="cyan")
-    table.add_column("url", style="blue")
-    table.add_column("snippet")
+    table.add_column("url", style="blue", overflow="fold")
+    table.add_column("snippet", overflow="fold")
     for r in results:
         table.add_row(r["title"], r["url"], r["snippet"][:120])
     console.print(table)

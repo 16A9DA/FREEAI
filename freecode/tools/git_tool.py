@@ -75,7 +75,7 @@ def git_log(n=10):
     table.add_column("hash", style="yellow")
     table.add_column("author", style="cyan")
     table.add_column("date")
-    table.add_column("message")
+    table.add_column("message", overflow="fold")
     for c in commits:
         table.add_row(
             c.hexsha[:7],

@@ -66,7 +66,7 @@ def show(cfg=None):
     cfg = cfg if cfg is not None else load_config()
     table = Table(title="Config")
     table.add_column("key", style="cyan")
-    table.add_column("value")
+    table.add_column("value", overflow="fold")
     table.add_row("active_model", str(cfg.get("active_model")))
     table.add_row("assistance_level", str(cfg.get("assistance_level", "full")))
     table.add_row("pulled_models", ", ".join(cfg.get("pulled_models", [])) or "-")

@@ -90,7 +90,7 @@ def search_in_files(query, directory="."):
     table = Table(title=f"search: {query}")
     table.add_column("file", style="cyan")
     table.add_column("line", justify="right")
-    table.add_column("match")
+    table.add_column("match", overflow="fold")
     for rel, n, line in matches:
         table.add_row(rel, str(n), line)
     console.print(table)

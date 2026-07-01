@@ -40,7 +40,7 @@ def main():
         return
     table = Table(title="Task history")
     table.add_column("time", style="dim")
-    table.add_column("task")
+    table.add_column("task", overflow="fold")
     table.add_column("status")
     table.add_column("tokens", justify="right")
     for e in entries:

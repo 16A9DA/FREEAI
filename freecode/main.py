@@ -65,7 +65,7 @@ def _print_help():
     console.print("Describe a task, approve the plan, and watch it run step by step.\n")
     table = Table(show_header=True, header_style="bold")
     table.add_column("Command")
-    table.add_column("Description")
+    table.add_column("Description", overflow="fold")
     for name, desc in _COMMANDS:
         table.add_row(f"freeai {name}".strip(), desc)
     console.print(table)
@@ -162,7 +162,7 @@ def _inject_retrieval(task, cwd):
     if not chunks:
         return task
     table = Table(title="Retrieved context (headroom-compressed)")
-    table.add_column("file", style="cyan")
+    table.add_column("file", style="cyan", overflow="fold")
     table.add_column("lines", justify="right")
     table.add_column("type")
     table.add_column("saved", justify="right")
