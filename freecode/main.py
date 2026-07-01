@@ -27,6 +27,7 @@ _FREETEXT = {
     "list models": "model list", "show models": "model list", "models": "model list",
     "show history": "history", "history": "history",
     "clear": "clear", "help": "help", "show help": "help",
+    "config": "config", "show config": "config", "show settings": "config",
 }
 
 app = typer.Typer(help="freeai local AI coding assistant.")
@@ -192,6 +193,8 @@ def _run_builtin(cmd):
         history.main()
     elif name == "clear":
         clear.main(history="--history" in rest)
+    elif name == "config":
+        config.show()
     elif name == "model":
         sub = rest[0].lower() if rest else "list"
         if sub == "list":

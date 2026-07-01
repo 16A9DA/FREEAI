@@ -58,6 +58,12 @@ def main(
     if changed:
         save_config(cfg)
         console.print("[green]Config updated.[/green]")
+    show(cfg)
+
+
+def show(cfg=None):
+    """Print the config table. Plain-callable (no Typer), safe from the task loop."""
+    cfg = cfg if cfg is not None else load_config()
     table = Table(title="Config")
     table.add_column("key", style="cyan")
     table.add_column("value")
