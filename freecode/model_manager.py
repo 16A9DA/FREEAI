@@ -18,23 +18,36 @@ def _human(size):
 
 @app.command("list")
 def list_cmd():
-    """Show locally pulled models."""
+    """Show locally pulled models, split by chat vs embedding."""
     cfg = load_config()
     active = cfg.get("active_model")
-    table = Table(title="Local models")
+    known_embed = cfg.get("known_embedding_models", [])
+    models = ollama_client.list_models_detailed()
+    chat_models = [m for m in models if not ollama_client.is_embedding_model(m["name"], known_embed)]
+    embed_models = [m for m in models if ollama_client.is_embedding_model(m["name"], known_embed)]
+
+    table = Table(title="Chat models")
     table.add_column("name", style="cyan")
     table.add_column("size", justify="right")
     table.add_column("active", justify="center")
-    for m in ollama_client.list_models_detailed():
+    for m in chat_models:
         table.add_row(m["name"], _human(m["size"]), "*" if m["name"] == active else "")
     console.print(table)
+
+    if embed_models:
+        etable = Table(title="Embedding models")
+        etable.add_column("name", style="cyan")
+        etable.add_column("size", justify="right")
+        for m in embed_models:
+            etable.add_row(m["name"], _human(m["size"]))
+        console.print(etable)
 
 
 @app.command()
 def pull(name: str = typer.Argument(None)):
     """Pull a model and stream download progress."""
     name = name or Prompt.ask("Model name")
-    if name in ollama_client.list_models():
+    if ollama_client.is_model_pulled(name, ollama_client.list_models()):
         console.print(f"[yellow]{name} already pulled.[/yellow]")
     else:
         columns = (TextColumn("[bold]{task.description}"), BarColumn(), DownloadColumn(), TransferSpeedColumn())
@@ -59,14 +72,18 @@ def pull(name: str = typer.Argument(None)):
 def use(name: str):
     """Set the active model."""
     cfg = load_config()
-    if name not in cfg["pulled_models"]:
+    known_embed = cfg.get("known_embedding_models", [])
+    if ollama_client.is_embedding_model(name, known_embed):
+        console.print(f"[red]{name} is an embedding-only model and cannot be used for chat.[/red]")
+        return
+    if not ollama_client.is_model_pulled(name, cfg["pulled_models"]):
         console.print(f"[yellow]{name} is not pulled yet.[/yellow]")
         if Confirm.ask(f"Pull {name} now?", default=True):
             pull(name)
         return
     cfg["active_model"] = name
     save_config(cfg)
-    console.print(f"[green]Active model is now {name}[/green]")
+    console.print(f"[green]model → {name}[/green]")
 
 
 @app.command()

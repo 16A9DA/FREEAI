@@ -2,6 +2,7 @@ import inspect
 import json
 
 from rich.console import Console
+from rich.table import Table
 
 from freecode import defaults, ollama_client, parser
 from freecode.tools import browser_tool, compress, file_tools, git_tool, shell_tool, web_tool
@@ -60,17 +61,23 @@ def _parse_call(text):
         return None
 
 
-def run(steps, model, extra_system="", compression="moderate"):
+def run(steps, model, extra_system="", compression="moderate", known_embedding_models=()):
     system = parser.with_skills(AGENT_SYSTEM)
     if extra_system:
         system = extra_system + "\n\n" + system
     history = [{"role": "system", "content": system}]
+    step_usage = []  # [(label, prompt_tokens, completion_tokens)]
+    total = 0
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})
+        prompt_tok = completion_tok = 0
         for _ in range(MAX_ITERS):
-            with console.status("[cyan]Thinking...[/cyan]"):
-                reply = "".join(ollama_client.chat(model, history, stream=False))
+            with console.status(f"[cyan]Working[/cyan] · {model} · tokens: {total:,}"):
+                reply, usage = ollama_client.chat_with_usage(model, history, known_embedding_models)
+            prompt_tok += usage["prompt_tokens"]
+            completion_tok += usage["completion_tokens"]
+            total += usage["prompt_tokens"] + usage["completion_tokens"]
             history.append({"role": "assistant", "content": reply})
             call = _parse_call(reply)
             if call is None:
@@ -96,3 +103,27 @@ def run(steps, model, extra_system="", compression="moderate"):
             history.append({"role": "user", "content": f"Tool result: {result}"})
         else:
             console.print("[yellow]Step hit iteration cap.[/yellow]")
+        step_usage.append((f"step {i}: {step[:40]}", prompt_tok, completion_tok))
+    _print_session_summary(step_usage)
+    return step_usage
+
+
+def _print_session_summary(step_usage):
+    if not step_usage:
+        return
+    table = Table(title="Session token usage")
+    table.add_column("step")
+    table.add_column("prompt", justify="right")
+    table.add_column("completion", justify="right")
+    table.add_column("total", justify="right")
+    peak_idx = max(range(len(step_usage)), key=lambda i: step_usage[i][1] + step_usage[i][2])
+    tp = tc = 0
+    for idx, (label, p, c) in enumerate(step_usage):
+        tp += p
+        tc += c
+        style = "bold yellow" if idx == peak_idx else None
+        table.add_row(label, f"{p:,}", f"{c:,}", f"{p + c:,}", style=style)
+    table.add_row("total", f"{tp:,}", f"{tc:,}", f"{tp + tc:,}", style="bold")
+    console.print(table)
+    peak_label, pp, pc = step_usage[peak_idx]
+    console.print(f"[yellow]peak usage — {peak_label} ({pp + pc:,} tok)[/yellow]")

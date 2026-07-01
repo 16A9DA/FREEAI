@@ -1,9 +1,12 @@
+import difflib
 import os
 from pathlib import Path
 
 from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
+
+from freecode.ui import expandable
 
 console = Console()
 
@@ -15,11 +18,38 @@ def read_file(path):
     return p.read_text()
 
 
+def _show_diff(path, old, new, force=False):
+    if old is None:
+        expandable(f"[green]+ new file: {path}[/green]", lambda: console.print(new), force=force)
+        return
+    diff = list(difflib.unified_diff(
+        old.splitlines(keepends=True), new.splitlines(keepends=True),
+        fromfile=path, tofile=path,
+    ))
+    if not diff:
+        return
+
+    def render():
+        for line in diff:
+            if line.startswith("+") and not line.startswith("+++"):
+                console.print(line.rstrip(), style="green")
+            elif line.startswith("-") and not line.startswith("---"):
+                console.print(line.rstrip(), style="red")
+            else:
+                console.print(line.rstrip(), style="dim")
+
+    expandable(f"diff: {path}", render, force=force)
+
+
 def write_file(path, content):
     p = Path.cwd() / path
     if p.exists():
+        old = p.read_text()
+        _show_diff(path, old, content)
         if not Confirm.ask(f"Overwrite existing {path}?", default=False):
             return f"Cancelled: {path} not overwritten"
+    else:
+        _show_diff(path, None, content)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content)
     return f"Wrote {path}"
@@ -29,6 +59,7 @@ def create_file(path, content):
     p = Path.cwd() / path
     if p.exists():
         return f"Error: {path} already exists"
+    _show_diff(path, None, content)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(content)
     return f"Created {path}"
@@ -38,6 +69,7 @@ def delete_file(path):
     p = Path.cwd() / path
     if not p.exists():
         return f"Error: no file at {path}"
+    _show_diff(path, p.read_text(errors="replace"), "", force=True)
     if not Confirm.ask(f"Delete {path}?", default=False):
         return f"Cancelled: {path} not deleted"
     p.unlink()

@@ -15,6 +15,7 @@ dependencies = [
     "beautifulsoup4",
     "gitpython",
     "chromadb",
+    "prompt_toolkit",
 ]
 
 [project.scripts]

@@ -15,7 +15,6 @@ console = Console()
 EMBED_MODEL = "nomic-embed-text"
 EMB_DIR = Path.home() / ".freecode" / "embeddings"
 MAX_CHARS = 6000
-# Lines that start a new logical unit, so chunks follow code structure not arbitrary line counts.
 _BOUNDARY = re.compile(r"^\s*(def |class |async def |function |func |public |private |export )")
 
 
@@ -144,7 +143,7 @@ def main():
     if not ollama_client.check_running():
         console.print("[red]Ollama not running at localhost:11434. Start it with `ollama serve`.[/red]")
         raise typer.Exit(1)
-    if EMBED_MODEL not in ollama_client.list_models():
+    if not ollama_client.is_model_pulled(EMBED_MODEL, ollama_client.list_models()):
         console.print(f"[yellow]{EMBED_MODEL} not pulled. Run `freeai model pull {EMBED_MODEL}` first.[/yellow]")
         raise typer.Exit(1)
     with console.status("[cyan]Indexing project...[/cyan]"):

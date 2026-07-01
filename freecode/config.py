@@ -6,7 +6,10 @@ from rich.console import Console
 from rich.table import Table
 
 CONFIG_PATH = Path.home() / ".freecode" / "config.json"
-DEFAULTS = {"active_model": None, "pulled_models": [], "settings": {}, "assistance_level": "full"}
+DEFAULTS = {
+    "active_model": None, "pulled_models": [], "settings": {}, "assistance_level": "full",
+    "known_embedding_models": [],
+}
 ASSISTANCE_LEVELS = ("low", "full", "ultra")
 
 app = typer.Typer(help="Show and set config values.")

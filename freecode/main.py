@@ -2,14 +2,15 @@ import re
 from pathlib import Path
 
 import typer
+from prompt_toolkit import PromptSession
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 
 from freecode import (
-    agent, assistance, clear, config, history, model_manager,
-    ollama_client, parser, planner, rag, skills,
+    agent, assistance, clear, commands, config, history, model_manager,
+    ollama_client, parser, planner, rag, skills, ui,
 )
 from freecode.config import ASSISTANCE_LEVELS, load_config, save_config
 
@@ -84,6 +85,19 @@ def main(ctx: typer.Context, help_: bool = typer.Option(False, "-help", help="Li
     if not model:
         console.print("[yellow]No active model set. Run `freeai model pull <name>` to get one.[/yellow]")
         raise typer.Exit(0)
+    pulled = cfg.get("pulled_models", [])
+    if not ollama_client.is_model_pulled(model, pulled):
+        console.print(
+            f"[red]Configured active model '{model}' is not among pulled models: "
+            f"{', '.join(pulled) or '(none)'}.[/red]"
+        )
+        choices = [p for p in pulled if not ollama_client.is_embedding_model(p, cfg.get("known_embedding_models", []))]
+        if not choices:
+            console.print("[yellow]No chat model pulled. Run `freeai model pull <name>`.[/yellow]")
+            raise typer.Exit(1)
+        model = Prompt.ask("Pick a model to use", choices=choices)
+        cfg["active_model"] = model
+        save_config(cfg)
     level = cfg.get("assistance_level", "full")
     console.print(f"Active model: [bold]{model}[/bold]   Assistance: [bold]{level}[/bold]")
     console.print("[dim]Defaults: headroom (compresses tool output) · caveman (terse replies) · "
@@ -97,7 +111,7 @@ def main(ctx: typer.Context, help_: bool = typer.Option(False, "-help", help="Li
 
 
 def _build_index(cwd):
-    if rag.EMBED_MODEL not in ollama_client.list_models():
+    if not ollama_client.is_model_pulled(rag.EMBED_MODEL, ollama_client.list_models()):
         console.print(
             f"[yellow]{rag.EMBED_MODEL} not pulled. Run `freeai model pull {rag.EMBED_MODEL}` then "
             "`freeai index`. Continuing with @ mentions only.[/yellow]"
@@ -138,9 +152,11 @@ def task_loop(model):
     rag_on = rag.has_index(cwd)
     asked = rag_on
     level = load_config().get("assistance_level", "full")
+    session = PromptSession(completer=commands.SlashCompleter(), complete_while_typing=True)
     while True:
-        task = console.input("\n[bold cyan]task>[/bold cyan] ").strip()
-        if task.lower() in {"exit", "quit", ""}:
+        console.print(f"\n[dim]{model} · {level}[/dim]")
+        task = session.prompt("task> ").strip()
+        if task.lower() in {"exit", "quit", "", "/done"}:
             console.print("Bye.")
             break
         if (m := _SWITCH.match(task)):
@@ -181,9 +197,12 @@ def task_loop(model):
             console.print("[yellow]No plan produced. Try rephrasing.[/yellow]")
             continue
         body = "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1))
-        console.print(Panel(body, title="Plan", border_style="cyan"))
+        ui.expandable("Plan ready", lambda: console.print(Panel(body, title="Plan", border_style="cyan")))
         if Confirm.ask("Approve this plan?", default=True):
-            agent.run(steps, model, extra_system=extra_system,
-                      compression=profile["compression_aggressiveness"])
+            known_embed = load_config().get("known_embedding_models", [])
+            step_usage = agent.run(steps, model, extra_system=extra_system,
+                                    compression=profile["compression_aggressiveness"],
+                                    known_embedding_models=known_embed)
+            history.append_session(task, step_usage)
         else:
             console.print("[dim]Refine your task and try again.[/dim]")

@@ -4,6 +4,16 @@ from pathlib import Path
 from freecode import ollama_client
 
 _MENTION = re.compile(r"@(\S+)")
+_SLASH = re.compile(r"/(\w*)$")
+
+
+def parse_slash_commands(text, available_commands):
+    """Return commands whose name starts with the slash-token trailing the cursor, or []."""
+    m = _SLASH.search(text)
+    if not m:
+        return []
+    prefix = m.group(1).lower()
+    return [c for c in available_commands if c["name"].startswith(prefix)]
 
 _SUMMARY_SYSTEM = (
     "Summarise this file and identify the parts most relevant to a coding task. "
@@ -72,6 +82,10 @@ def demo():
     assert parse_mentions("no mentions here") == "no mentions here"
     base = "BASE"
     assert with_skills(base) == base or "Project rules" in with_skills(base)
+    cmds = [{"name": "model", "description": "d", "args_hint": ""}, {"name": "config", "description": "d", "args_hint": ""}]
+    assert [c["name"] for c in parse_slash_commands("do /mo", cmds)] == ["model"]
+    assert parse_slash_commands("no slash", cmds) == []
+    assert parse_slash_commands("/", cmds) == cmds
     print("ok")
 
 
