@@ -3,6 +3,9 @@ from pathlib import Path
 
 import typer
 from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -17,7 +20,8 @@ from freecode.config import ASSISTANCE_LEVELS, load_config, save_config
 GITHUB_URL = "https://github.com/16A9DA/FREEAI"
 
 _SWITCH = re.compile(r"^(?:switch model to|model)\s+(\S+)$", re.I)
-_ASSIST = re.compile(r"^assistance\s+(\w+)$", re.I)
+_ASSIST = re.compile(r"^(?:assistance|mode)\s+(\w+)$", re.I)
+_HISTORY_FILE = str(Path.home() / ".freecode" / "prompt_history")
 
 app = typer.Typer(help="freeai local AI coding assistant.")
 console = Console()
@@ -153,9 +157,19 @@ def task_loop(model):
     asked = rag_on
     level = load_config().get("assistance_level", "full")
     ui.set_context(model, level)
+    kb = KeyBindings()
+
+    @kb.add("s-right")
+    def _accept_suggestion(event):
+        buf = event.current_buffer
+        if buf.suggestion:
+            buf.insert_text(buf.suggestion.text)
+
+    Path(_HISTORY_FILE).parent.mkdir(parents=True, exist_ok=True)
     session = PromptSession(
-        completer=commands.SlashCompleter(), complete_while_typing=True,
-        bottom_toolbar=ui.bottom_toolbar,
+        completer=commands.CommandCompleter(), complete_while_typing=True,
+        auto_suggest=AutoSuggestFromHistory(), history=FileHistory(_HISTORY_FILE),
+        key_bindings=kb, bottom_toolbar=ui.bottom_toolbar,
     )
     while True:
         task = session.prompt("task> ").strip()
