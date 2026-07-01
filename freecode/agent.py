@@ -16,6 +16,7 @@ TOOLS = {
     "read_file": file_tools.read_file,
     "write_file": file_tools.write_file,
     "create_file": file_tools.create_file,
+    "create_folder": file_tools.create_folder,
     "delete_file": file_tools.delete_file,
     "search_in_files": file_tools.search_in_files,
     "run_command": shell_tool.run_command,
@@ -64,6 +65,18 @@ def _parse_call(text):
         return None
 
 
+def _clean_error(name, exc):
+    """Short plain-English tool error, never a raw traceback, so a small model
+    can recover instead of derailing (Day 38)."""
+    msg = str(exc)
+    if isinstance(exc, TypeError):
+        if name == "create_file":
+            return ("create_file needs a path and optional content; "
+                    "for an empty folder use create_folder instead")
+        return f"{name}: wrong or missing arguments ({msg})"
+    return f"{name} failed: {msg}"
+
+
 def _new_project_folder(name, args):
     """Top-level folder a tool call is creating a file inside, else None.
     Used to follow the agent into a scaffolded project dir (Day 36)."""
@@ -85,7 +98,8 @@ def _new_project_folder(name, args):
     return p.parts[0]
 
 
-def run(steps, model, extra_system="", compression="moderate", known_embedding_models=()):
+def run(steps, model, extra_system="", compression="moderate", known_embedding_models=(),
+        pin_root=False):
     system = parser.with_skills(AGENT_SYSTEM)
     if extra_system:
         system = extra_system + "\n\n" + system
@@ -94,12 +108,16 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
     total = 0
     warned = False
     origin = Path.cwd()
-    shifted = False  # Day 36: followed the agent into a scaffolded project dir yet
+    # Day 36 auto-follow into a scaffolded dir; skipped when a Day 39 write target
+    # already pinned the working dir explicitly.
+    shifted = pin_root
     for i, step in enumerate(steps, 1):
         console.print(f"\n[bold]Step {i}/{len(steps)}[/bold] {step}")
+        step_start = len(history)  # Day 38: rollback point if this step fails
         history.append({"role": "user", "content": f"Execute step {i}: {step}"})
         prompt_tok = completion_tok = 0
         last_sig = None  # Day 37: previous tool call signature, to catch a stuck loop
+        ok = False
         for _ in range(MAX_ITERS):
             with console.status(f"[cyan]Working[/cyan] · {model} · tokens: {total:,}"):
                 reply, usage = ollama_client.chat_with_usage(model, history, known_embedding_models)
@@ -115,6 +133,7 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
                 break
             if call.get("done"):
                 console.print("[green]✓ Step done.[/green]")
+                ok = True
                 break
             name, args = call.get("tool"), call.get("args", {})
             sig = (name, json.dumps(args, sort_keys=True, default=str))
@@ -142,12 +161,16 @@ def run(steps, model, extra_system="", compression="moderate", known_embedding_m
                             console.print(f"[cyan]project root → {folder}/[/cyan]")
                             shifted = True
                 except Exception as e:
-                    result = f"Error: {e}"
-                    console.print(f"[red]✗ {name}: {e}[/red]")
+                    result = _clean_error(name, e)
+                    console.print(f"[red]✗ {name}: {result}[/red]")
             result = compress.compress_output(result, compression)
             history.append({"role": "user", "content": f"Tool result: {result}"})
         else:
             console.print("[yellow]Step hit iteration cap.[/yellow]")
+        if not ok:
+            # Day 38: drop this failed step's transcript so its error text does not
+            # poison later steps' context and derail the whole plan.
+            del history[step_start:]
         step_usage.append((f"step {i}: {step[:40]}", prompt_tok, completion_tok))
         if not warned and len(steps) <= 3 and total > 3000:
             console.print("[yellow]Token usage high for this task's size — consider a "

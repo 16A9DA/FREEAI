@@ -1,4 +1,5 @@
 import hashlib
+import os
 import re
 from pathlib import Path
 
@@ -276,6 +277,13 @@ def task_loop(model):
                 rag_on = _build_index(cwd)
             else:
                 _set_prompt_declined(cwd)
+        # Day 39: an @ mention acting as a write target redirects where output
+        # lands. Detect and strip it before planning; apply the chdir at exec time.
+        write_target = None
+        if (wt := parser.detect_write_target(task)):
+            raw, write_target = wt
+            task = task.replace("@" + raw, "", 1).strip()
+            console.print(f"[cyan]writing to → {write_target}[/cyan]")
         with ui.phase("Learning"):
             if rag_on:
                 task = _inject_retrieval(task, cwd)
@@ -295,9 +303,15 @@ def task_loop(model):
                       lambda: console.print(Panel(body, title="Plan", border_style="cyan")))
         if ui.confirm("Approve this plan?", "plan", default=True):
             known_embed = load_config().get("known_embedding_models", [])
+            if write_target:
+                write_target.mkdir(parents=True, exist_ok=True)
+                os.chdir(write_target)
             step_usage = agent.run(steps, model, extra_system=extra_system,
                                     compression=profile["compression_aggressiveness"],
-                                    known_embedding_models=known_embed)
+                                    known_embedding_models=known_embed,
+                                    pin_root=bool(write_target))
+            if write_target:
+                os.chdir(cwd)
             history.append_session(task, step_usage)
         else:
             console.print("[dim]Refine your task and try again.[/dim]")

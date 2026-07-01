@@ -44,7 +44,13 @@ def write_file(path, content):
         ui.set_editing(None)
 
 
-def create_file(path, content):
+def create_folder(path):
+    p = Path.cwd() / path
+    p.mkdir(parents=True, exist_ok=True)
+    return f"Created folder {path}"
+
+
+def create_file(path, content=""):
     p = Path.cwd() / path
     if p.exists():
         return f"Error: {path} already exists"

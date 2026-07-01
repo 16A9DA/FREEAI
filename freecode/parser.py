@@ -6,6 +6,39 @@ from freecode import ollama_client
 _MENTION = re.compile(r"@(\S+)")
 _SLASH = re.compile(r"/(\w*)$")
 
+# Day 39: @ mention can mean "write output here", told apart from a read
+# reference by the verb context around it.
+_READ_CUES = ("using", "based on", "like", "similar to", "referencing")
+_WRITE_VERBS = ("create", "make", "build", "write", "add", "put")
+_SHORTHAND = {"documents", "desktop", "downloads", "pictures"}
+
+
+def resolve_write_target(mention):
+    """Resolve a write-target mention to an absolute Path. Shorthand folder names
+    map under the home dir; anything path-shaped is used as given."""
+    m = mention.rstrip("/.,)")
+    if m.lower() in _SHORTHAND:
+        return Path.home() / m.capitalize()
+    p = Path(m).expanduser()
+    return p if p.is_absolute() else (Path.cwd() / p).resolve()
+
+
+def detect_write_target(text):
+    """First @ mention acting as a write target, else None.
+    Returns (raw_mention, resolved_path). Defaults to read reference (None) when
+    no verb signal, preserving Day 8 behavior."""
+    for m in _MENTION.finditer(text):
+        raw = m.group(1)
+        before = text[:m.start()].strip().lower()
+        after = text[m.end():].strip().lower()
+        if any(before.endswith(cue) for cue in _READ_CUES):
+            continue
+        first = before == ""
+        verb_after = any(after == v or after.startswith(v + " ") for v in _WRITE_VERBS)
+        if first or verb_after:
+            return raw, resolve_write_target(raw)
+    return None
+
 
 def parse_slash_commands(text, available_commands):
     """Return commands whose name starts with the slash-token trailing the cursor, or []."""
