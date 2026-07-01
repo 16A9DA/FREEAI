@@ -22,6 +22,12 @@ GITHUB_URL = "https://github.com/16A9DA/FREEAI"
 _SWITCH = re.compile(r"^switch model to\s+(\S+)$", re.I)
 _ASSIST = re.compile(r"^(?:assistance|mode)\s+(\w+)$", re.I)
 _HISTORY_FILE = str(Path.home() / ".freecode" / "prompt_history")
+# Free-text phrasings that mean a builtin command (mapped to the builtin string).
+_FREETEXT = {
+    "list models": "model list", "show models": "model list", "models": "model list",
+    "show history": "history", "history": "history",
+    "clear": "clear", "help": "help", "show help": "help",
+}
 
 app = typer.Typer(help="freeai local AI coding assistant.")
 console = Console()
@@ -207,7 +213,7 @@ def task_loop(model):
     ui.set_context(model, level)
     kb = KeyBindings()
 
-    @kb.add("s-right")
+    @kb.add("s-tab")
     def _accept_suggestion(event):
         buf = event.current_buffer
         if buf.suggestion:
@@ -231,6 +237,12 @@ def task_loop(model):
             rag_on = _build_index(cwd)
             continue
         if _run_builtin(cmd):
+            model = load_config().get("active_model") or model
+            ui.set_context(model, level)
+            continue
+        # Free-text phrasings of builtins route the same zero-token way as slash
+        # commands, so "list models" never reaches the planner.
+        if (routed := _FREETEXT.get(cmd.lower())) and _run_builtin(routed):
             model = load_config().get("active_model") or model
             ui.set_context(model, level)
             continue
