@@ -16,8 +16,6 @@ console = Console()
 
 
 def select(prompt, options, horizontal=True, default=0):
-    """Arrow-key picker. Returns chosen index. Left/right move horizontal,
-    up/down move vertical, enter confirms."""
     idx = [default]
 
     def render():
@@ -84,8 +82,29 @@ def confirm(question, category, default=False):
     return choice == 0
 
 
+def _unified(path, old, new):
+    """Single-column diff for narrow terminals: -/+ lines stacked, so text stays
+    readable instead of two columns squeezed too thin to read."""
+    table = Table(title=f"diff: {path}", expand=True, show_header=False)
+    table.add_column("diff", overflow="fold")
+    for line in difflib.unified_diff(old.splitlines(), new.splitlines(), lineterm=""):
+        if line.startswith(("+++", "---")):
+            continue
+        if line.startswith("+"):
+            table.add_row(Text(line, style="green"))
+        elif line.startswith("-"):
+            table.add_row(Text(line, style="red"))
+        elif line.startswith("@@"):
+            table.add_row(Text(line, style="cyan"))
+        else:
+            table.add_row(Text(line, style="dim"))
+    return table
+
+
 def side_by_side(path, old, new):
-    """Rich two-column table: old left, new right, changed rows tinted red/green."""
+    """Two-column diff on wide terminals, stacked unified diff when narrow."""
+    if responsive.is_narrow():
+        return _unified(path, old, new)
     table = Table(title=f"diff: {path}", expand=True)
     table.add_column("old", ratio=1, overflow="fold")
     table.add_column("new", ratio=1, overflow="fold")
