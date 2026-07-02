@@ -12,8 +12,10 @@ console = Console()
 
 def read_file(path):
     p = Path.cwd() / path
+    if not p.exists():
+        return f"Error: file not found: {p}"
     if not p.is_file():
-        return f"Error: no file at {path}"
+        return f"Error: not a file: {p}"
     return p.read_text()
 
 
