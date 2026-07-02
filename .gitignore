@@ -34,3 +34,10 @@ dist/
 
 # build plan
 plan.md
+
+
+# tests
+freecode/test_harness.py
+freecode/self_test.py
+freecode/test_setup_models.py
+tests/
