@@ -77,6 +77,11 @@ def embed(model, text):
     return r.json()["embedding"]
 
 
+def get_embedding(text, model="nomic-embed-text"):
+    """Embedding for arbitrary text via the RAG embedding model. Returns a list of floats."""
+    return embed(model, text)
+
+
 def chat(model, messages, stream=True, known_embedding_models=()):
     if is_embedding_model(model, known_embedding_models):
         raise ValueError(

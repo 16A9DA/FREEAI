@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from freecode import (
-    agent, assistance, clear, commands, config, history, model_manager,
+    agent, assistance, clear, commands, config, history, intent, model_manager,
     ollama_client, parser, planner, rag, skills, ui,
 )
 from freecode.config import ASSISTANCE_LEVELS, load_config, save_config
@@ -266,6 +266,18 @@ def task_loop(model):
             save_config(cfg)
             ui.set_context(model, level)
             console.print(f"[green]Assistance level is now {level}.[/green]")
+            continue
+        # Third gate: a question about freeai's own state is answered directly
+        # from session memory, with no plan, no tools, no retrieval.
+        if intent.classify_intent(task) == "question":
+            active_skills = ", ".join(s["name"] for s in skills.list_skills()) or "none"
+            console.print(Panel(
+                f"Active model: {model}\n"
+                f"Assistance level: {level}\n"
+                f"Active skills: {active_skills}\n"
+                f"Project root: {cwd}",
+                title="freeai state",
+            ))
             continue
         if not asked:
             asked = True

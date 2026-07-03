@@ -43,3 +43,22 @@ def generate_plan(task, model, write=True, extra_system=""):
         body = "# Plan\n\n" + "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1)) + "\n"
         Path("plan.md").write_text(body)
     return steps
+
+
+_CLASSIFY_SYSTEM = (
+    "Classify the user input as exactly one lowercase word: 'task' if it asks to "
+    "create, modify, build, run, or fix something; 'question' if it only asks about "
+    "current state or for an explanation. Reply with the single word only."
+)
+
+
+def classify_with_model(text):
+    """Tier-3 fallback: one bounded model call returning 'task' or 'question'."""
+    from freecode.config import load_config
+    model = load_config().get("active_model")
+    messages = [
+        {"role": "system", "content": _CLASSIFY_SYSTEM},
+        {"role": "user", "content": text},
+    ]
+    out = "".join(ollama_client.chat(model, messages, stream=False)).strip().lower()
+    return "question" if "question" in out else "task"
